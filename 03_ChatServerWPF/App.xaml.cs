@@ -13,5 +13,6 @@ namespace _03_ChatServerWPF
     /// </summary>
     public partial class App : Application
     {
+        
     }
 }

@@ -1,20 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
 
 namespace _03_ChatServerWPF
 {
@@ -26,33 +16,93 @@ namespace _03_ChatServerWPF
         // Stap 3:
         TcpClient tcpClient;
         NetworkStream networkStream;
-        Thread thread;
+        private Boolean serverRunning;
+
+        private List<TcpClient> clientConnectionList = new List<TcpClient>();
 
         public MainWindow()
         {
             InitializeComponent();
         }
 
-        // Stap 5:
         private void AddMessage(string message)
         {
             this.Dispatcher.Invoke(() => listChats.Items.Add(message));
         }
-
-        // Stap 7:
-        private void ReceiveData()
+        
+        private async void startServerButton_Click(object sender, RoutedEventArgs e)
         {
-            int bufferSize = 1024;            
+            try
+            {
+                if (!serverRunning)
+                {
+                    await CreateServerAsync(
+                        serverPort.Text,
+                        serverBufferSize.Text
+                    );
+                }
+            }
+            catch
+            {
+                MessageBox.Show("Server is not available");
+            }
+        }
+
+        private async void stopServerButton_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                serverRunning = false;
+                serverName.IsEnabled = true;
+                serverPort.IsEnabled = true;
+                serverBufferSize.IsEnabled = true;
+                btnStop.Visibility = Visibility.Hidden;
+                btnStart.Visibility = Visibility.Visible;
+                btnSend.IsEnabled = true;
+            }
+            catch
+            {
+                MessageBox.Show("Server is not available");
+            }
+        }
+
+        
+        private async Task CreateServerAsync(string port, string buffer)
+        {
+            serverRunning = true;
+            serverName.IsEnabled = false;
+            serverPort.IsEnabled = false;
+            serverBufferSize.IsEnabled = false;
+            btnStop.Visibility = Visibility.Visible;
+            btnStart.Visibility = Visibility.Hidden;
+            btnSend.IsEnabled = true;
+
+            TcpListener tcpListener = new TcpListener(IPAddress.Any, Int32.Parse(port));
+            tcpListener.Start();
+            
+            AddMessage($"Listening for clients on port: {port}");
+
+            while (serverRunning)
+            {
+                TcpClient tcpClient = await tcpListener.AcceptTcpClientAsync();
+                clientConnectionList.Add(tcpClient);
+                // await Task.Run(() => ReceiveData(tcpClient, Int32.Parse(buffer)));
+            }
+            tcpListener.Stop();
+        }
+        
+        private void ReceiveData(TcpClient tcpClient, int buffersize)
+        {
             string message = "";
-            byte[] buffer = new byte[bufferSize];
+            byte[] buffer = new byte[buffersize];
 
             networkStream = tcpClient.GetStream();
             
             AddMessage("Connected!");
-
+            
             while (true)
             {
-                int readBytes = networkStream.Read(buffer, 0, bufferSize);
+                int readBytes = networkStream.Read(buffer, 0, buffersize);
                 message = Encoding.ASCII.GetString(buffer, 0, readBytes);
 
                 if (message == "bye")
@@ -72,28 +122,24 @@ namespace _03_ChatServerWPF
             AddMessage("Connection closed");
         }
 
-        private void btnStartStop_Click(object sender, RoutedEventArgs e)
+
+        private async void btnSend_Click(object sender, RoutedEventArgs e)
         {
-            TcpListener tcpListener = new TcpListener(IPAddress.Any, 9000);
-            tcpListener.Start();
+            try
+            {
+                string message = txtMessage.Text;
 
-            AddMessage("Listening for client.");
+                byte[] buffer = Encoding.ASCII.GetBytes(message);
+                networkStream.Write(buffer, 0, buffer.Length);
 
-            tcpClient = tcpListener.AcceptTcpClient();
-            thread = new Thread(new ThreadStart(ReceiveData));
-            thread.Start();
-        }
-
-        private void btnSend_Click(object sender, RoutedEventArgs e)
-        {
-            string message = txtMessage.Text;
-
-            byte[] buffer = Encoding.ASCII.GetBytes(message);
-            networkStream.Write(buffer, 0, buffer.Length);
-
-            AddMessage(message);
-            txtMessage.Clear();
-            txtMessage.Focus();
+                AddMessage(message);
+                txtMessage.Clear();
+                txtMessage.Focus();
+            }
+            catch
+            {
+                AddMessage("Message could not be send!");
+            }
         }
     }
 }

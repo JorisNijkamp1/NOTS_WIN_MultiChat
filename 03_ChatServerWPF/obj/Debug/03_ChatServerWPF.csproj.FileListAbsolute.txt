@@ -13,3 +13,18 @@ C:\Users\Martijn Driessen\source\repos\NOTS_Uitwerking_opdracht_1\03_ChatServerW
 C:\Users\Martijn Driessen\source\repos\NOTS_Uitwerking_opdracht_1\03_ChatServerWPF\obj\Debug\03_ChatServerWPF.csproj.CoreCompileInputs.cache
 C:\Users\Martijn Driessen\source\repos\NOTS_Uitwerking_opdracht_1\03_ChatServerWPF\obj\Debug\03_ChatServerWPF.exe
 C:\Users\Martijn Driessen\source\repos\NOTS_Uitwerking_opdracht_1\03_ChatServerWPF\obj\Debug\03_ChatServerWPF.pdb
+C:\Users\joris\source\repos\MultiChatOpdracht1\03_ChatServerWPF\bin\Debug\03_ChatServerWPF.exe.config
+C:\Users\joris\source\repos\MultiChatOpdracht1\03_ChatServerWPF\bin\Debug\03_ChatServerWPF.exe
+C:\Users\joris\source\repos\MultiChatOpdracht1\03_ChatServerWPF\bin\Debug\03_ChatServerWPF.pdb
+C:\Users\joris\source\repos\MultiChatOpdracht1\03_ChatServerWPF\obj\Debug\03_ChatServerWPF.csprojAssemblyReference.cache
+C:\Users\joris\source\repos\MultiChatOpdracht1\03_ChatServerWPF\obj\Debug\MainWindow.g.cs
+C:\Users\joris\source\repos\MultiChatOpdracht1\03_ChatServerWPF\obj\Debug\App.g.cs
+C:\Users\joris\source\repos\MultiChatOpdracht1\03_ChatServerWPF\obj\Debug\03_ChatServerWPF_MarkupCompile.cache
+C:\Users\joris\source\repos\MultiChatOpdracht1\03_ChatServerWPF\obj\Debug\03_ChatServerWPF_MarkupCompile.lref
+C:\Users\joris\source\repos\MultiChatOpdracht1\03_ChatServerWPF\obj\Debug\MainWindow.baml
+C:\Users\joris\source\repos\MultiChatOpdracht1\03_ChatServerWPF\obj\Debug\03_ChatServerWPF.g.resources
+C:\Users\joris\source\repos\MultiChatOpdracht1\03_ChatServerWPF\obj\Debug\_03_ChatServerWPF.Properties.Resources.resources
+C:\Users\joris\source\repos\MultiChatOpdracht1\03_ChatServerWPF\obj\Debug\03_ChatServerWPF.csproj.GenerateResource.cache
+C:\Users\joris\source\repos\MultiChatOpdracht1\03_ChatServerWPF\obj\Debug\03_ChatServerWPF.csproj.CoreCompileInputs.cache
+C:\Users\joris\source\repos\MultiChatOpdracht1\03_ChatServerWPF\obj\Debug\03_ChatServerWPF.exe
+C:\Users\joris\source\repos\MultiChatOpdracht1\03_ChatServerWPF\obj\Debug\03_ChatServerWPF.pdb
