@@ -29,9 +29,9 @@ namespace _03_ChatServerWPF
         private void AddMessage(string message)
         {
             Debug.WriteLine("addmessaggeeee");
-            // this.Dispatcher.Invoke(() => listChats.Items.Add(message));
-            listChats.Items.Add(message);
-            // listChats.SelectedIndex = listChats.Items.Count - 1;
+            Dispatcher.Invoke(() => listChats.Items.Add(message));
+            // listChats.Items.Add(message);
+            listChats.SelectedIndex = listChats.Items.Count - 1;
         }
 
         private async void startServerButton_Click(object sender, RoutedEventArgs e)
@@ -49,7 +49,7 @@ namespace _03_ChatServerWPF
             }
         }
 
-        private async void stopServerButton_Click(object sender, RoutedEventArgs e)
+        private void stopServerButton_Click(object sender, RoutedEventArgs e)
         {
             try
             {
@@ -101,7 +101,7 @@ namespace _03_ChatServerWPF
 
         private void ReceiveData(TcpClient tcpClient, int bufferSize)
         {
-            Byte[] bytes = new byte[bufferSize];
+            Byte[] buffer = new byte[bufferSize];
             networkStream = tcpClient.GetStream();
 
             while (networkStream.CanRead)
@@ -109,44 +109,23 @@ namespace _03_ChatServerWPF
                 using (networkStream = tcpClient.GetStream())
                 {
                     int length;
-                    while ((length = networkStream.Read(bytes, 0, bytes.Length)) != 0) {
+                    while ((length = networkStream.Read(buffer, 0, buffer.Length)) != 0) {
                         var incommingData = new byte[length]; 							
-                        Array.Copy(bytes, 0, incommingData, 0, length);  							
+                        Array.Copy(buffer, 0, incommingData, 0, length);  							
+                        
                         // Convert byte array to string message. 							
                         string clientMessage = Encoding.ASCII.GetString(incommingData); 							
                         Debug.WriteLine("client message received as: " + clientMessage);
-                        AddMessage($"{clientMessage} has connected");
                     } 
                 }
             }
             
-            // string message = "";
-            // byte[] buffer = new byte[buffersize];
-            //
-            // networkStream = tcpClient.GetStream();
-            //
-            // AddMessage("Connected!");
-            //
-            // while (networkStream.CanRead)
-            // {
-            //     int readBytes = networkStream.Read(buffer, 0, buffersize);
-            //     message = Encoding.ASCII.GetString(buffer, 0, readBytes);
-            //
-            //     if (message == "bye")
-            //         break;
-            //
-            //     AddMessage(message);
-            // }
-            //
-            // // Verstuur een reactie naar de client (afsluitend bericht)
-            // buffer = Encoding.ASCII.GetBytes("bye");
-            // networkStream.Write(buffer, 0, buffer.Length);
-            //
-            // // cleanup:
-            // networkStream.Close();
-            // tcpClient.Close();
-            //
-            // AddMessage("Connection closed");
+            buffer = Encoding.ASCII.GetBytes("bye");
+            networkStream.Write(buffer, 0, buffer.Length);
+            
+            networkStream.Close();
+            tcpClient.Close();
+            AddMessage("Connection closed");
         }
 
 

@@ -24,10 +24,8 @@ namespace _03_ChatClientWPF
     /// </summary>
     public partial class MainWindowClient : Window
     {
-        // Stap 3:
         TcpClient tcpClient;
         NetworkStream networkStream;
-        Thread thread;
 
         public MainWindowClient()
         {
@@ -59,18 +57,18 @@ namespace _03_ChatClientWPF
                 await tcpClient.ConnectAsync(ip, ParseStringToInt(port));
 
                 AddMessage("Connected");
-
-                await Task.Run(() => updateClientListBox(tcpClient, name, bufferSize));
-
+                
+                btnConnect.Visibility = Visibility.Hidden;
+                btnDisconnect.Visibility = Visibility.Visible;
                 clientName.IsEnabled = false;
                 clientIp.IsEnabled = false;
                 clientPort.IsEnabled = false;
                 clientBufferSize.IsEnabled = false;
                 btnSend.IsEnabled = true;
                 txtMessage.IsEnabled = true;
-                //TODO 2 lines below execute when connect proberly
-                btnConnect.Visibility = Visibility.Hidden;
-                btnDisconnect.Visibility = Visibility.Visible;
+                
+                await Task.Run(() => updateClientListBox(tcpClient, name, bufferSize));
+                // TODO implement Task.Run for Receivedata
             }
             catch (SocketException e)
             {
@@ -133,7 +131,17 @@ namespace _03_ChatClientWPF
         {
             try
             {
-                MessageBox.Show("TODO implement Disconnect");
+                networkStream.Close();
+                tcpClient.Close();
+                btnConnect.Visibility = Visibility.Visible;
+                btnDisconnect.Visibility = Visibility.Hidden;
+                clientName.IsEnabled = true;
+                clientIp.IsEnabled = true;
+                clientPort.IsEnabled = true;
+                clientBufferSize.IsEnabled = true;
+                btnSend.IsEnabled = false;
+                txtMessage.IsEnabled = false;
+                MessageBox.Show("Disconnect, TODO implement correctly");
             }
             catch
             {
