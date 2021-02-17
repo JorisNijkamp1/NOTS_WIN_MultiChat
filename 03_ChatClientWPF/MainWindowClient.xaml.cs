@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Net.Sockets;
 using System.Text;
@@ -36,7 +38,7 @@ namespace _03_ChatClientWPF
         {
             this.Dispatcher.Invoke(() => listChats.Items.Add(message));
         }
-        
+
         private async void btnConnect_Click(object sender, RoutedEventArgs e)
         {
             try
@@ -55,9 +57,11 @@ namespace _03_ChatClientWPF
             {
                 tcpClient = new TcpClient();
                 await tcpClient.ConnectAsync(ip, ParseStringToInt(port));
-                
+
                 AddMessage("Connected");
-                
+
+                await Task.Run(() => updateClientListBox(tcpClient, name, bufferSize));
+
                 clientName.IsEnabled = false;
                 clientIp.IsEnabled = false;
                 clientPort.IsEnabled = false;
@@ -73,7 +77,25 @@ namespace _03_ChatClientWPF
                 MessageBox.Show("Could not create a connection with the server", "Connection error");
             }
         }
-        
+
+        private async Task updateClientListBox(TcpClient tcpClient, string name, string buffersize)
+        {
+            try
+            {
+                networkStream = tcpClient.GetStream();
+                if (networkStream.CanWrite)
+                {
+                    byte[] clientMessageByteArray = Encoding.ASCII.GetBytes(name);
+                    networkStream.Write(clientMessageByteArray, 0, clientMessageByteArray.Length);
+                    Debug.WriteLine("Client send this message - should be received by server");
+                }
+            }
+            catch (SocketException socketException)
+            {
+                MessageBox.Show("Er gaat iets fout.");
+            }
+        }
+
         private void ReceiveData()
         {
             int bufferSize = 1024;
@@ -81,7 +103,7 @@ namespace _03_ChatClientWPF
             byte[] buffer = new byte[bufferSize];
 
             networkStream = tcpClient.GetStream();
-            
+
             AddMessage("Connected!");
 
             while (true)
@@ -118,7 +140,7 @@ namespace _03_ChatClientWPF
                 MessageBox.Show("YOU CANNOT CONNECT");
             }
         }
-        
+
         private void btnSend_Click(object sender, RoutedEventArgs e)
         {
             string message = txtMessage.Text;
@@ -130,7 +152,7 @@ namespace _03_ChatClientWPF
             txtMessage.Clear();
             txtMessage.Focus();
         }
-        
+
         private int ParseStringToInt(string input)
         {
             int number;

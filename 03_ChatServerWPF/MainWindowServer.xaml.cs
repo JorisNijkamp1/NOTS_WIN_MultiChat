@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -27,6 +28,7 @@ namespace _03_ChatServerWPF
 
         private void AddMessage(string message)
         {
+            Debug.WriteLine("addmessaggeeee");
             // this.Dispatcher.Invoke(() => listChats.Items.Add(message));
             listChats.Items.Add(message);
             // listChats.SelectedIndex = listChats.Items.Count - 1;
@@ -86,20 +88,38 @@ namespace _03_ChatServerWPF
             {
                 while (serverRunning)
                 {
-                    System.Diagnostics.Debug.WriteLine( IPAddress.Any, port );
                     var tcpClient = await tcpListener.AcceptTcpClientAsync();
                     
-                    System.Diagnostics.Debug.WriteLine( "Someone is connected brug" );
+                    Debug.WriteLine( "Someone is connected bruhh" );
 
                     clientConnectionList.Add(tcpClient);
 
-                    // await Task.Run(() => ReceiveData(tcpClient, ParseStringToInt(port)));
+                    await Task.Run(() => ReceiveData(tcpClient, ParseStringToInt(port)));
                 }
             });
         }
 
         private void ReceiveData(TcpClient tcpClient, int bufferSize)
         {
+            Byte[] bytes = new byte[bufferSize];
+            networkStream = tcpClient.GetStream();
+
+            while (networkStream.CanRead)
+            {
+                using (networkStream = tcpClient.GetStream())
+                {
+                    int length;
+                    while ((length = networkStream.Read(bytes, 0, bytes.Length)) != 0) {
+                        var incommingData = new byte[length]; 							
+                        Array.Copy(bytes, 0, incommingData, 0, length);  							
+                        // Convert byte array to string message. 							
+                        string clientMessage = Encoding.ASCII.GetString(incommingData); 							
+                        Debug.WriteLine("client message received as: " + clientMessage);
+                        AddMessage($"{clientMessage} has connected");
+                    } 
+                }
+            }
+            
             // string message = "";
             // byte[] buffer = new byte[buffersize];
             //
