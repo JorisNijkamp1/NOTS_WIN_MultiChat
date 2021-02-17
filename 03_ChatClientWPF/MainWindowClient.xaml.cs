@@ -20,26 +20,60 @@ namespace _03_ChatClientWPF
     /// <summary>
     /// Interaction logic for MainWindow.xaml
     /// </summary>
-    public partial class MainWindow : Window
+    public partial class MainWindowClient : Window
     {
         // Stap 3:
         TcpClient tcpClient;
         NetworkStream networkStream;
         Thread thread;
 
-
-        public MainWindow()
+        public MainWindowClient()
         {
             InitializeComponent();
         }
 
-        // Stap 5:
         private void AddMessage(string message)
         {
             this.Dispatcher.Invoke(() => listChats.Items.Add(message));
         }
+        
+        private async void btnConnect_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                await CreateConnectionAsync(clientName.Text, clientIp.Text, clientPort.Text, clientBufferSize.Text);
+            }
+            catch
+            {
+                MessageBox.Show("YOU CANNOT CONNECT");
+            }
+        }
 
-        // Stap 7:
+        private async Task CreateConnectionAsync(string name, string ip, string port, string bufferSize)
+        {
+            try
+            {
+                tcpClient = new TcpClient();
+                await tcpClient.ConnectAsync(ip, ParseStringToInt(port));
+                
+                AddMessage("Connected");
+                
+                clientName.IsEnabled = false;
+                clientIp.IsEnabled = false;
+                clientPort.IsEnabled = false;
+                clientBufferSize.IsEnabled = false;
+                btnSend.IsEnabled = true;
+                txtMessage.IsEnabled = true;
+                //TODO 2 lines below execute when connect proberly
+                btnConnect.Visibility = Visibility.Hidden;
+                btnDisconnect.Visibility = Visibility.Visible;
+            }
+            catch (SocketException e)
+            {
+                MessageBox.Show("Could not create a connection with the server", "Connection error");
+            }
+        }
+        
         private void ReceiveData()
         {
             int bufferSize = 1024;
@@ -72,16 +106,19 @@ namespace _03_ChatClientWPF
             AddMessage("Connection closed");
         }
 
-        private void btnConnect_Click(object sender, RoutedEventArgs e)
+
+        private async void btnDisconnect_Click(object sender, RoutedEventArgs e)
         {
-            AddMessage("Connecting...");
-
-            //tcpClient = new TcpClient(txtIPServer.Text, txtPort.Text);
-            tcpClient = new TcpClient(txtIPServer.Text, 9000);
-            thread = new Thread(new ThreadStart(ReceiveData));
-            thread.Start();
+            try
+            {
+                MessageBox.Show("TODO implement Disconnect");
+            }
+            catch
+            {
+                MessageBox.Show("YOU CANNOT CONNECT");
+            }
         }
-
+        
         private void btnSend_Click(object sender, RoutedEventArgs e)
         {
             string message = txtMessage.Text;
@@ -92,6 +129,13 @@ namespace _03_ChatClientWPF
             AddMessage(message);
             txtMessage.Clear();
             txtMessage.Focus();
+        }
+        
+        private int ParseStringToInt(string input)
+        {
+            int number;
+            int.TryParse(input, out number);
+            return number;
         }
     }
 }

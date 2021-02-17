@@ -12,7 +12,7 @@ namespace _03_ChatServerWPF
     /// <summary>
     /// Interaction logic for MainWindow.xaml
     /// </summary>
-    public partial class MainWindow : Window
+    public partial class MainWindowServer : Window
     {
         TcpClient tcpClient;
         private TcpListener tcpListener;
@@ -20,7 +20,7 @@ namespace _03_ChatServerWPF
         private Boolean serverRunning;
         private List<TcpClient> clientConnectionList = new List<TcpClient>();
 
-        public MainWindow()
+        public MainWindowServer()
         {
             InitializeComponent();
         }
@@ -77,7 +77,7 @@ namespace _03_ChatServerWPF
             btnStart.Visibility = Visibility.Hidden;
             btnSend.IsEnabled = true;
 
-            tcpListener = new TcpListener(IPAddress.Any, Int32.Parse(port));
+            tcpListener = new TcpListener(IPAddress.Any, ParseStringToInt(port));
             tcpListener.Start();
 
             AddMessage($"Listening for clients on port: {port}");
@@ -86,45 +86,48 @@ namespace _03_ChatServerWPF
             {
                 while (serverRunning)
                 {
+                    System.Diagnostics.Debug.WriteLine( IPAddress.Any, port );
                     var tcpClient = await tcpListener.AcceptTcpClientAsync();
+                    
+                    System.Diagnostics.Debug.WriteLine( "Someone is connected brug" );
 
                     clientConnectionList.Add(tcpClient);
 
-                    // await Task.Run(() => ReceiveData(tcpClient, Int32.Parse(buffer)));
+                    // await Task.Run(() => ReceiveData(tcpClient, ParseStringToInt(port)));
                 }
             });
         }
 
-        // private void ReceiveData(TcpClient tcpClient, int bufferSize)
-        // {
-        //     string message = "";
-        //     byte[] buffer = new byte[buffersize];
-        //
-        //     networkStream = tcpClient.GetStream();
-        //     
-        //     AddMessage("Connected!");
-        //     
-        //     while (networkStream.CanRead)
-        //     {
-        //         int readBytes = networkStream.Read(buffer, 0, buffersize);
-        //         message = Encoding.ASCII.GetString(buffer, 0, readBytes);
-        //
-        //         if (message == "bye")
-        //             break;
-        //
-        //         AddMessage(message);
-        //     }
-        //
-        //     // Verstuur een reactie naar de client (afsluitend bericht)
-        //     buffer = Encoding.ASCII.GetBytes("bye");
-        //     networkStream.Write(buffer, 0, buffer.Length);
-        //
-        //     // cleanup:
-        //     networkStream.Close();
-        //     tcpClient.Close();
-        //
-        //     AddMessage("Connection closed");
-        // }
+        private void ReceiveData(TcpClient tcpClient, int bufferSize)
+        {
+            // string message = "";
+            // byte[] buffer = new byte[buffersize];
+            //
+            // networkStream = tcpClient.GetStream();
+            //
+            // AddMessage("Connected!");
+            //
+            // while (networkStream.CanRead)
+            // {
+            //     int readBytes = networkStream.Read(buffer, 0, buffersize);
+            //     message = Encoding.ASCII.GetString(buffer, 0, readBytes);
+            //
+            //     if (message == "bye")
+            //         break;
+            //
+            //     AddMessage(message);
+            // }
+            //
+            // // Verstuur een reactie naar de client (afsluitend bericht)
+            // buffer = Encoding.ASCII.GetBytes("bye");
+            // networkStream.Write(buffer, 0, buffer.Length);
+            //
+            // // cleanup:
+            // networkStream.Close();
+            // tcpClient.Close();
+            //
+            // AddMessage("Connection closed");
+        }
 
 
         private async void btnSend_Click(object sender, RoutedEventArgs e)
@@ -144,6 +147,12 @@ namespace _03_ChatServerWPF
             {
                 AddMessage("Message could not be send!");
             }
+        }
+        private int ParseStringToInt(string input)
+        {
+            int number;
+            int.TryParse(input, out number);
+            return number;
         }
     }
 }
