@@ -57,7 +57,7 @@ namespace _03_ChatClientWPF
                 await tcpClient.ConnectAsync(ip, ParseStringToInt(port));
 
                 AddMessage("Connected");
-                
+
                 btnConnect.Visibility = Visibility.Hidden;
                 btnDisconnect.Visibility = Visibility.Visible;
                 clientName.IsEnabled = false;
@@ -66,7 +66,7 @@ namespace _03_ChatClientWPF
                 clientBufferSize.IsEnabled = false;
                 btnSend.IsEnabled = true;
                 txtMessage.IsEnabled = true;
-                
+
                 await Task.Run(() => updateClientListBox(tcpClient, name, bufferSize));
                 // TODO implement Task.Run for Receivedata
             }
@@ -80,17 +80,19 @@ namespace _03_ChatClientWPF
         {
             try
             {
+                string connectionMessage = "@CONNECT";
                 networkStream = tcpClient.GetStream();
                 if (networkStream.CanWrite)
                 {
-                    byte[] clientMessageByteArray = Encoding.ASCII.GetBytes(name);
+                    connectionMessage += name;
+                    byte[] clientMessageByteArray = Encoding.ASCII.GetBytes(connectionMessage);
                     networkStream.Write(clientMessageByteArray, 0, clientMessageByteArray.Length);
-                    Debug.WriteLine("Client send this message - should be received by server");
+                    Debug.WriteLine("Client send this message - connect");
                 }
             }
             catch (SocketException socketException)
             {
-                MessageBox.Show("Er gaat iets fout.");
+                MessageBox.Show("Er gaat iets fout.", "Error");
             }
         }
 
@@ -149,16 +151,41 @@ namespace _03_ChatClientWPF
             }
         }
 
-        private void btnSend_Click(object sender, RoutedEventArgs e)
+        private async void btnSend_Click(object sender, RoutedEventArgs e)
         {
-            string message = txtMessage.Text;
+            try
+            {
+                await SendMessageToServer(clientName.Text, txtMessage.Text, clientBufferSize.Text);
+            }
+            catch
+            {
+                MessageBox.Show("YOU CANNOT CONNECT");
+            }
+        }
 
-            byte[] buffer = Encoding.ASCII.GetBytes(message);
-            networkStream.Write(buffer, 0, buffer.Length);
+        private async Task SendMessageToServer(string name, string message, string buffersize)
+        {
+            try
+            {
+                string fullMessage = "@MESSAGE";
+                fullMessage += name + " ";
+                networkStream = tcpClient.GetStream();
 
-            AddMessage(message);
-            txtMessage.Clear();
-            txtMessage.Focus();
+                if (networkStream.CanRead)
+                {
+                    fullMessage += message;
+                    byte[] clientMessageByteArray = Encoding.ASCII.GetBytes(fullMessage);
+                    networkStream.Write(clientMessageByteArray, 0, clientMessageByteArray.Length);
+                    Debug.WriteLine("Client send this message - while connected");
+                }
+                AddMessage(name + ": " + message);
+                txtMessage.Clear();
+                txtMessage.Focus();
+            }
+            catch (SocketException exception)
+            {
+                MessageBox.Show("Er gaat iets fout.", "Error");
+            }
         }
 
         private int ParseStringToInt(string input)
