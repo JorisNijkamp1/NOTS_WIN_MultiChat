@@ -3,8 +3,10 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
@@ -34,14 +36,24 @@ namespace _03_ChatClientWPF
 
         private void AddMessage(string message)
         {
-            this.Dispatcher.Invoke(() => listChats.Items.Add(message));
+            Dispatcher.Invoke(() => listChats.Items.Add(message));
         }
 
         private async void btnConnect_Click(object sender, RoutedEventArgs e)
         {
             try
             {
-                await CreateConnectionAsync(clientName.Text, clientIp.Text, clientPort.Text, clientBufferSize.Text);
+                if (NameValidation(clientName.Text) && IpValidation(clientIp.Text)
+                                                    && PortValidation(clientPort.Text) &&
+                                                    clientBufferSize.Text.All(char.IsDigit))
+                {
+                    int port = ParseStringToInt(clientPort.Text);
+                    await CreateConnectionAsync(clientName.Text, clientIp.Text, port, clientBufferSize.Text);
+                }
+                else
+                {
+                    MessageBox.Show("Input value is not correct", "Invalid input");
+                }
             }
             catch
             {
@@ -49,12 +61,12 @@ namespace _03_ChatClientWPF
             }
         }
 
-        private async Task CreateConnectionAsync(string name, string ip, string port, string bufferSize)
+        private async Task CreateConnectionAsync(string name, string ip, int port, string bufferSize)
         {
             try
             {
                 tcpClient = new TcpClient();
-                await tcpClient.ConnectAsync(ip, ParseStringToInt(port));
+                await tcpClient.ConnectAsync(ip, port);
 
                 AddMessage("Connected");
 
@@ -67,7 +79,7 @@ namespace _03_ChatClientWPF
                 btnSend.IsEnabled = true;
                 txtMessage.IsEnabled = true;
 
-                await Task.Run(() => updateClientListBox(tcpClient, name, bufferSize));
+                await Task.Run(() => updateClientListBox(tcpClient, name));
                 // TODO implement Task.Run for Receivedata
             }
             catch (SocketException e)
@@ -76,7 +88,7 @@ namespace _03_ChatClientWPF
             }
         }
 
-        private async Task updateClientListBox(TcpClient tcpClient, string name, string buffersize)
+        private async Task updateClientListBox(TcpClient tcpClient, string name)
         {
             try
             {
@@ -128,7 +140,6 @@ namespace _03_ChatClientWPF
             AddMessage("Connection closed");
         }
 
-
         private async void btnDisconnect_Click(object sender, RoutedEventArgs e)
         {
             try
@@ -168,7 +179,7 @@ namespace _03_ChatClientWPF
             try
             {
                 string fullMessage = "@MESSAGE";
-                fullMessage += name + " ";
+                fullMessage += name + ": ";
                 networkStream = tcpClient.GetStream();
 
                 if (networkStream.CanRead)
@@ -178,6 +189,7 @@ namespace _03_ChatClientWPF
                     networkStream.Write(clientMessageByteArray, 0, clientMessageByteArray.Length);
                     Debug.WriteLine("Client send this message - while connected");
                 }
+
                 AddMessage(name + ": " + message);
                 txtMessage.Clear();
                 txtMessage.Focus();
@@ -190,9 +202,25 @@ namespace _03_ChatClientWPF
 
         private int ParseStringToInt(string input)
         {
-            int number;
-            int.TryParse(input, out number);
+            int.TryParse(input, out int number);
             return number;
+        }
+
+        private bool NameValidation(string input)
+        {
+            var regex = new Regex("^[a-zA-Z0-9 ]*$");
+            return regex.IsMatch(input);
+        }
+
+        private bool IpValidation(string input)
+        {
+            return IPAddress.TryParse(input, out var ip);
+        }
+
+        private bool PortValidation(string input)
+        {
+            const int maxPortNumber = 65535;
+            return input.All(char.IsDigit) && ParseStringToInt(input) <= maxPortNumber;
         }
     }
 }

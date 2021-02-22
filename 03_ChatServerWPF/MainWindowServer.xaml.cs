@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -45,13 +46,12 @@ namespace _03_ChatServerWPF
                 Dispatcher.Invoke((() => listClients.Items.Add(message)));
             }
         }
-        
+
         private void AddMessageToChatBox(string message)
         {
             if (clientConnectionList.Count == 1)
             {
                 Dispatcher.Invoke((() => listChats.Items.Add(message)));
-                Dispatcher.Invoke((() => listChats.Items.RemoveAt(0)));
             }
             else
             {
@@ -63,10 +63,18 @@ namespace _03_ChatServerWPF
         {
             try
             {
-                await CreateServerAsync(
-                    serverPort.Text,
-                    serverBufferSize.Text
-                );
+                if (PortValidation(serverPort.Text) && serverBufferSize.Text.All(char.IsDigit))
+                {
+                    AddMessage("Server is starting");
+                    await CreateServerAsync(
+                        ParseStringToInt(serverPort.Text),
+                        serverBufferSize.Text
+                    );
+                }
+                else
+                {
+                    MessageBox.Show("Invalid input", "Invalid input");
+                }
             }
             catch
             {
@@ -86,7 +94,6 @@ namespace _03_ChatServerWPF
                 serverBufferSize.IsEnabled = true;
                 btnStop.Visibility = Visibility.Hidden;
                 btnStart.Visibility = Visibility.Visible;
-                btnSend.IsEnabled = true;
             }
             catch
             {
@@ -94,7 +101,7 @@ namespace _03_ChatServerWPF
             }
         }
 
-        private async Task CreateServerAsync(string port, string buffer)
+        private async Task CreateServerAsync(int port, string buffer)
         {
             serverRunning = true;
             serverName.IsEnabled = false;
@@ -102,26 +109,18 @@ namespace _03_ChatServerWPF
             serverBufferSize.IsEnabled = false;
             btnStop.Visibility = Visibility.Visible;
             btnStart.Visibility = Visibility.Hidden;
-            btnSend.IsEnabled = true;
 
-            tcpListener = new TcpListener(IPAddress.Any, ParseStringToInt(port));
+            tcpListener = new TcpListener(IPAddress.Any, port);
             tcpListener.Start();
 
             AddMessage($"Listening for clients on port: {port}");
 
-            Task.Run(async () =>
+            while (serverRunning)
             {
-                while (serverRunning)
-                {
-                    Debug.WriteLine("Waiting for client");
-                    var tcpClient = await tcpListener.AcceptTcpClientAsync();
-                    Debug.WriteLine("Someone is connected bruhh");
-
-                    clientConnectionList.Add(tcpClient);
-
-                    await Task.Run(() => ReceiveData(tcpClient, ParseStringToInt(port)));
-                }
-            });
+                tcpClient = await tcpListener.AcceptTcpClientAsync();
+                clientConnectionList.Add(tcpClient);
+                Task.Run(() => ReceiveData(tcpClient, ParseStringToInt(buffer)));
+            }
         }
 
         private void ReceiveData(TcpClient tcpClient, int bufferSize)
@@ -133,54 +132,33 @@ namespace _03_ChatServerWPF
             {
                 using (networkStream = tcpClient.GetStream())
                 {
+                    string connectIncoming = "@CONNECT";
+                    string messageIncoming = "@MESSAGE";
+
                     int length;
                     while ((length = networkStream.Read(buffer, 0, buffer.Length)) != 0)
                     {
+                        // Determine incoming bytes.
                         var incommingData = new byte[length];
+
+                        // Copy array to Bytes buffer with correct buffersize 
                         Array.Copy(buffer, 0, incommingData, 0, length);
 
                         // Convert byte array to string message.						
                         string clientMessage = Encoding.ASCII.GetString(incommingData);
-                        
+
                         Debug.WriteLine("client message received as: " + clientMessage);
-                        
-                        if (clientMessage.StartsWith("@CONNECT"))
+
+                        if (clientMessage.StartsWith(connectIncoming))
                         {
-                            AddMessageToClientList(clientMessage);
+                            AddMessageToClientList(clientMessage.Remove(0, connectIncoming.Length));
                         }
-                        else if (clientMessage.StartsWith("@MESSAGE"))
+                        else if (clientMessage.StartsWith(messageIncoming))
                         {
-                            AddMessageToChatBox(clientMessage);
+                            AddMessageToChatBox(clientMessage.Remove(0, messageIncoming.Length));
                         }
                     }
                 }
-            }
-
-            buffer = Encoding.ASCII.GetBytes("bye");
-            networkStream.Write(buffer, 0, buffer.Length);
-
-            networkStream.Close();
-            tcpClient.Close();
-            AddMessage("Connection closed");
-        }
-
-
-        private async void btnSend_Click(object sender, RoutedEventArgs e)
-        {
-            try
-            {
-                string message = txtMessage.Text;
-
-                byte[] buffer = Encoding.ASCII.GetBytes(message);
-                networkStream.Write(buffer, 0, buffer.Length);
-
-                AddMessage(message);
-                txtMessage.Clear();
-                txtMessage.Focus();
-            }
-            catch
-            {
-                AddMessage("Message could not be send!");
             }
         }
 
@@ -189,6 +167,12 @@ namespace _03_ChatServerWPF
             int number;
             int.TryParse(input, out number);
             return number;
+        }
+
+        private bool PortValidation(string input)
+        {
+            const int maxPortNumber = 65535;
+            return input.All(char.IsDigit) && ParseStringToInt(input) <= maxPortNumber;
         }
     }
 }
