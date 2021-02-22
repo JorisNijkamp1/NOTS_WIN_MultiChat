@@ -67,9 +67,7 @@ namespace _03_ChatClientWPF
             {
                 tcpClient = new TcpClient();
                 await tcpClient.ConnectAsync(ip, port);
-
-                AddMessage("Connected");
-
+                
                 btnConnect.Visibility = Visibility.Hidden;
                 btnDisconnect.Visibility = Visibility.Visible;
                 clientName.IsEnabled = false;
@@ -79,8 +77,10 @@ namespace _03_ChatClientWPF
                 btnSend.IsEnabled = true;
                 txtMessage.IsEnabled = true;
 
-                await Task.Run(() => updateClientListBox(tcpClient, name));
-                // TODO implement Task.Run for Receivedata
+                networkStream = tcpClient.GetStream();
+
+                await Task.Run(() => UpdateClientListBox(name));
+                Task.Run(() => ReceiveData(tcpClient, ParseStringToInt(bufferSize)));
             }
             catch (SocketException e)
             {
@@ -88,17 +88,17 @@ namespace _03_ChatClientWPF
             }
         }
 
-        private async Task updateClientListBox(TcpClient tcpClient, string name)
+        private async void UpdateClientListBox(string name)
         {
             try
             {
                 string connectionMessage = "@CONNECT";
-                networkStream = tcpClient.GetStream();
+
                 if (networkStream.CanWrite)
                 {
                     connectionMessage += name;
                     byte[] clientMessageByteArray = Encoding.ASCII.GetBytes(connectionMessage);
-                    networkStream.Write(clientMessageByteArray, 0, clientMessageByteArray.Length);
+                    await networkStream.WriteAsync(clientMessageByteArray, 0, clientMessageByteArray.Length);
                     Debug.WriteLine("Client send this message - connect");
                 }
             }
@@ -108,44 +108,44 @@ namespace _03_ChatClientWPF
             }
         }
 
-        private void ReceiveData()
+        private void ReceiveData(TcpClient tcpClient, int bufferSize)
         {
-            int bufferSize = 1024;
-            string message = "";
             byte[] buffer = new byte[bufferSize];
 
-            networkStream = tcpClient.GetStream();
-
-            AddMessage("Connected!");
-
-            while (true)
+            while (networkStream.CanRead)
             {
-                int readBytes = networkStream.Read(buffer, 0, bufferSize);
-                message = Encoding.ASCII.GetString(buffer, 0, readBytes);
+                using (networkStream = tcpClient.GetStream())
+                {
+                    string messageIncoming = "@MESSAGE";
+                    string connectIncoming = "@CONNECT";
+                    int length;
+                    while ((length = networkStream.Read(buffer, 0, buffer.Length)) != 0)
+                    {
+                        // Determine incoming bytes.
+                        var incomingData = new byte[length];
 
-                if (message == "bye")
-                    break;
+                        Array.Copy(buffer, 0, incomingData, 0, length);
 
-                AddMessage(message);
+                        string clientMessage = Encoding.ASCII.GetString(incomingData);
+
+                        if (clientMessage.StartsWith(messageIncoming))
+                        {
+                            AddMessage(clientMessage.Remove(0, messageIncoming.Length));
+                        }
+                        else if (clientMessage.StartsWith(connectIncoming))
+                        {
+                            AddMessage(clientMessage.Remove(0, connectIncoming.Length));
+                        }
+                    }
+                }
             }
-
-            // Verstuur een reactie naar de client (afsluitend bericht)
-            buffer = Encoding.ASCII.GetBytes("bye");
-            networkStream.Write(buffer, 0, buffer.Length);
-
-            // cleanup:
-            networkStream.Close();
-            tcpClient.Close();
-
-            AddMessage("Connection closed");
         }
 
         private async void btnDisconnect_Click(object sender, RoutedEventArgs e)
         {
             try
             {
-                networkStream.Close();
-                tcpClient.Close();
+                await DisconnectClient();
                 btnConnect.Visibility = Visibility.Visible;
                 btnDisconnect.Visibility = Visibility.Hidden;
                 clientName.IsEnabled = true;
@@ -154,11 +154,25 @@ namespace _03_ChatClientWPF
                 clientBufferSize.IsEnabled = true;
                 btnSend.IsEnabled = false;
                 txtMessage.IsEnabled = false;
-                MessageBox.Show("Disconnect, TODO implement correctly");
             }
             catch
             {
-                MessageBox.Show("YOU CANNOT CONNECT");
+                MessageBox.Show("YOU CANNOT DISCONNECT");
+            }
+        }
+
+        private async Task DisconnectClient()
+        {
+            string fullMessage = "@DISCONNECT";
+            fullMessage += clientName.Text + ": disconnected";
+
+            if (networkStream.CanRead)
+            {
+                byte[] clientMessageByteArray = Encoding.ASCII.GetBytes(fullMessage);
+                await networkStream.WriteAsync(clientMessageByteArray, 0, clientMessageByteArray.Length);
+                tcpClient.Close();
+                networkStream.Close();
+                Debug.WriteLine("Client send this message - wanting to disconnect!");
             }
         }
 
@@ -186,13 +200,9 @@ namespace _03_ChatClientWPF
                 {
                     fullMessage += message;
                     byte[] clientMessageByteArray = Encoding.ASCII.GetBytes(fullMessage);
-                    networkStream.Write(clientMessageByteArray, 0, clientMessageByteArray.Length);
+                    await networkStream.WriteAsync(clientMessageByteArray, 0, clientMessageByteArray.Length);
                     Debug.WriteLine("Client send this message - while connected");
                 }
-
-                AddMessage(name + ": " + message);
-                txtMessage.Clear();
-                txtMessage.Focus();
             }
             catch (SocketException exception)
             {

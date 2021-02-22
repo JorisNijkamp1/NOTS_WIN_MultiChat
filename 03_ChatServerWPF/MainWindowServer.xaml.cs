@@ -22,6 +22,8 @@ namespace _03_ChatServerWPF
         private Boolean serverRunning;
         private List<TcpClient> clientConnectionList = new List<TcpClient>();
 
+        protected delegate void UpdateDisplay(string message);
+
         public MainWindowServer()
         {
             InitializeComponent();
@@ -119,11 +121,12 @@ namespace _03_ChatServerWPF
             {
                 tcpClient = await tcpListener.AcceptTcpClientAsync();
                 clientConnectionList.Add(tcpClient);
+                //TODO stoppen en meerdere clients fixen!
                 Task.Run(() => ReceiveData(tcpClient, ParseStringToInt(buffer)));
             }
         }
 
-        private void ReceiveData(TcpClient tcpClient, int bufferSize)
+        private async void ReceiveData(TcpClient tcpClient, int bufferSize)
         {
             Byte[] buffer = new byte[bufferSize];
             networkStream = tcpClient.GetStream();
@@ -134,29 +137,54 @@ namespace _03_ChatServerWPF
                 {
                     string connectIncoming = "@CONNECT";
                     string messageIncoming = "@MESSAGE";
+                    string disconnectIncoming = "@DISCONNECT";
 
                     int length;
                     while ((length = networkStream.Read(buffer, 0, buffer.Length)) != 0)
                     {
                         // Determine incoming bytes.
-                        var incommingData = new byte[length];
+                        var incomingData = new byte[length];
 
                         // Copy array to Bytes buffer with correct buffersize 
-                        Array.Copy(buffer, 0, incommingData, 0, length);
+                        Array.Copy(buffer, 0, incomingData, 0, length);
 
                         // Convert byte array to string message.						
-                        string clientMessage = Encoding.ASCII.GetString(incommingData);
+                        string clientMessage = Encoding.ASCII.GetString(incomingData);
 
                         Debug.WriteLine("client message received as: " + clientMessage);
 
                         if (clientMessage.StartsWith(connectIncoming))
                         {
+                            await SendMessageToClients(clientMessage + ": connected!");
                             AddMessageToClientList(clientMessage.Remove(0, connectIncoming.Length));
                         }
                         else if (clientMessage.StartsWith(messageIncoming))
                         {
                             AddMessageToChatBox(clientMessage.Remove(0, messageIncoming.Length));
+                            await SendMessageToClients(clientMessage);
                         }
+                        else if (clientMessage.StartsWith(disconnectIncoming))
+                        {
+                            await SendMessageToClients(clientMessage);
+                            AddMessageToChatBox(clientMessage.Remove(0, disconnectIncoming.Length));
+                        }
+                    }
+                }
+            }
+        }
+
+        private async Task SendMessageToClients(string message)
+        {
+            if (clientConnectionList.Count > 0)
+            {
+                foreach (var client in clientConnectionList)
+                {
+                    networkStream = client.GetStream();
+                    if (networkStream.CanRead)
+                    {
+                        byte[] serverMessageByteArray = Encoding.ASCII.GetBytes(message);
+                        await networkStream.WriteAsync(serverMessageByteArray, 0, serverMessageByteArray.Length);
+                        Debug.WriteLine("Message send a client (must be multiple execute");
                     }
                 }
             }
