@@ -69,7 +69,7 @@ namespace _03_ChatClientWPF
                 networkStream = tcpClient.GetStream();
 
                 await Task.Run(() => UpdateClientListBox(name));
-                await Task.Run(() => ReceiveData( ParseStringToInt(bufferSize)));
+                await Task.Run(() => ReceiveData(ParseStringToInt(bufferSize)));
             }
             catch (SocketException e)
             {
@@ -81,12 +81,11 @@ namespace _03_ChatClientWPF
         {
             try
             {
-                string connectionMessage = "";
+                string connectionMessage = name;
+                connectionMessage += "CONNECT@";
 
                 if (networkStream.CanWrite)
                 {
-                    connectionMessage += name;
-                    connectionMessage += "@CONNECT";
                     byte[] clientMessageByteArray = Encoding.ASCII.GetBytes(connectionMessage);
                     await networkStream.WriteAsync(clientMessageByteArray, 0, clientMessageByteArray.Length);
                     Debug.WriteLine($"Client send this message - {connectionMessage}");
@@ -101,26 +100,29 @@ namespace _03_ChatClientWPF
         private async void ReceiveData(int bufferSize)
         {
             byte[] buffer = new byte[bufferSize];
-            
+
             networkStream = tcpClient.GetStream();
 
             while (networkStream.CanRead)
             {
                 string incomingMessage = "";
+                string message = "";
 
                 while (incomingMessage.IndexOf("@") < 0)
                 {
-                    Debug.WriteLine("In while als bericht langer is dan 0");
-                    int bytes = await networkStream.ReadAsync(buffer, 0, buffer.Length);
-                    Debug.WriteLine(bytes);
-                    incomingMessage = Encoding.ASCII.GetString(buffer, 0, bytes);
-                    Debug.WriteLine(incomingMessage);
+                    int bytes = await networkStream.ReadAsync(buffer, 0, bufferSize);
+                    message = Encoding.ASCII.GetString(buffer, 0, bytes);
+
+                    incomingMessage += message;
+                    Debug.WriteLine("message: ", message);
+                    Debug.WriteLine("Incomingmessage " + incomingMessage);
                 }
-                
-                string message = incomingMessage.Remove(incomingMessage.Length - 1);
-                
+
+                message = incomingMessage.Remove(incomingMessage.Length - 1);
+
                 AddMessage(message);
             }
+
             networkStream.Close();
             tcpClient.Close();
         }
@@ -147,14 +149,13 @@ namespace _03_ChatClientWPF
 
         private async Task DisconnectClient()
         {
-            string fullMessage = "@DISCONNECT";
-            fullMessage += clientName.Text + ": disconnected";
+            string disconnectMessage = clientName.Text + ": disconnected";
+            disconnectMessage += "DISCONNECT@";
 
             if (networkStream.CanRead)
             {
-                byte[] clientMessageByteArray = Encoding.ASCII.GetBytes(fullMessage);
+                byte[] clientMessageByteArray = Encoding.ASCII.GetBytes(disconnectMessage);
                 await networkStream.WriteAsync(clientMessageByteArray, 0, clientMessageByteArray.Length);
-                Debug.WriteLine("Client send this message - wanting to disconnect!");
             }
         }
 
@@ -174,17 +175,16 @@ namespace _03_ChatClientWPF
         {
             try
             {
-                string fullMessage = "";
-                fullMessage += name + ": ";
-                
+                string fullMessage = name + ": " + message;
+                fullMessage += "MESSAGE@";
+
                 if (networkStream.CanWrite)
                 {
-                    fullMessage += message;
-                    fullMessage += "@MESSAGE";
                     byte[] clientMessageByteArray = Encoding.ASCII.GetBytes(fullMessage);
                     await networkStream.WriteAsync(clientMessageByteArray, 0, clientMessageByteArray.Length);
                     Debug.WriteLine($"Client send this message - {fullMessage}");
                 }
+
                 txtMessage.Clear();
                 txtMessage.Focus();
             }

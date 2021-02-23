@@ -35,7 +35,7 @@
                     <TextBox x:Name="clientName" Grid.Column="1" Text="Client 1" Margin="5"/>
                     <TextBox x:Name="clientIp" Grid.Row="1" Grid.Column="1" Text="127.0.0.1" Margin="5"/>
                     <TextBox x:Name="clientPort" Grid.Row="2" Grid.Column="1" Text="9000" Margin="5"/>
-                    <TextBox x:Name="clientBufferSize" Grid.Row="3" Grid.Column="1" Text="1024" Margin="5"/>
+                    <TextBox x:Name="clientBufferSize" Grid.Row="3" Grid.Column="1" Text="10" Margin="5"/>
 
                     <Button x:Name="btnConnect" Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="2" Content="Connect" Padding="5" Margin="10" Click="btnConnect_Click"/>
                     <Button x:Name="btnDisconnect" Visibility="Hidden" Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="2" Content="Disconnect" Padding="5" Margin="10" Click="btnDisconnect_Click"/>

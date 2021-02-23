@@ -39,7 +39,7 @@
 
                 <TextBox x:Name="serverName" Grid.Column="1" Text="NOTS Chat Server" Margin="5"/>
                 <TextBox x:Name="serverPort" Grid.Row="1" Grid.Column="1" Text="9000" Margin="5"/>
-                <TextBox x:Name="serverBufferSize" Grid.Row="2" Grid.Column="1" Text="1024" Margin="5"/>
+                <TextBox x:Name="serverBufferSize" Grid.Row="2" Grid.Column="1" Text="10" Margin="5"/>
 
                 <Button x:Name="btnStart" Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="2" Content="Start server" Padding="5" Margin="10" Click="startServerButton_Click"/>
                 <Button x:Name="btnStop" Visibility="Hidden" Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="2" Content="Stop server" Padding="5" Margin="10" Click="stopServerButton_Click"/>

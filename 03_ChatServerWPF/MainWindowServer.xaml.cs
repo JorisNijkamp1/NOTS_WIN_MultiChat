@@ -129,47 +129,43 @@ namespace _03_ChatServerWPF
         private async void ReceiveData(TcpClient tcpClient, int bufferSize)
         {
             Byte[] buffer = new byte[bufferSize];
-            networkStream = tcpClient.GetStream();
+            NetworkStream networkStream = tcpClient.GetStream();
 
-            string connectIncoming = "@CONNECT";
-            string messageIncoming = "@MESSAGE";
-            string disconnectIncoming = "@DISCONNECT";
+            string connectIncoming = "CONNECT@";
+            string messageIncoming = "MESSAGE@";
+            string disconnectIncoming = "DISCONNECT@";
 
             while (networkStream.CanRead)
             {
                 string incomingMessage = "";
+                string message = "";
 
                 while (incomingMessage.IndexOf("@") < 0)
                 {
-                    Debug.WriteLine("Incoming message");
                     int bytes = await networkStream.ReadAsync(buffer, 0, bufferSize);
-                    incomingMessage = Encoding.ASCII.GetString(buffer, 0, bytes);
-                    
+                    message = Encoding.ASCII.GetString(buffer, 0, bytes);
+                    incomingMessage += message;
                 }
-                
-                Debug.WriteLine("Incoming message" + incomingMessage);
 
-                if (incomingMessage.EndsWith(connectIncoming))
+                if (incomingMessage.EndsWith(messageIncoming))
                 {
-                    string message = incomingMessage.Remove(incomingMessage.Length - connectIncoming.Length);
-                    AddMessageToClientList(message);
-                    await SendMessageToClients(message + ": connected!@");
-                }
-                else if (incomingMessage.EndsWith(messageIncoming))
-                {
-                    string message = incomingMessage.Remove(incomingMessage.Length - messageIncoming.Length);
-                    
+                    message = incomingMessage.Remove(incomingMessage.Length - messageIncoming.Length);
+
                     AddMessageToChatBox(message);
-                    message += "@";
-                    await SendMessageToClients(message);
+                    await SendMessageToClients(message + "@");
                 }
                 else if (incomingMessage.EndsWith(disconnectIncoming))
                 {
-                    string message = incomingMessage.Remove(incomingMessage.Length - disconnectIncoming.Length);
-                
+                    message = incomingMessage.Remove(incomingMessage.Length - disconnectIncoming.Length);
+                    
                     AddMessageToChatBox(message);
-                    message += "@";
-                    await SendMessageToClients(message);
+                    await SendMessageToClients(message + "@");
+                }
+                else if (incomingMessage.EndsWith(connectIncoming))
+                {
+                    message = incomingMessage.Remove(incomingMessage.Length - connectIncoming.Length);
+                    AddMessageToClientList(message);
+                    await SendMessageToClients(message + ": connected!@");
                 }
             }
         }
@@ -185,7 +181,6 @@ namespace _03_ChatServerWPF
                     {
                         byte[] serverMessageByteArray = Encoding.ASCII.GetBytes(message);
                         await networkStream.WriteAsync(serverMessageByteArray, 0, serverMessageByteArray.Length);
-                        Debug.WriteLine("Message send a client (must be multiple execute");
                     }
                 }
             }
