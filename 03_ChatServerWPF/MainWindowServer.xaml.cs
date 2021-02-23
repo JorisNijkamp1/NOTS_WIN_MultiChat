@@ -84,13 +84,19 @@ namespace _03_ChatServerWPF
             }
         }
 
-        private void stopServerButton_Click(object sender, RoutedEventArgs e)
+        private async void stopServerButton_Click(object sender, RoutedEventArgs e)
         {
             try
             {
-                AddMessage("Server is closing");
+                string disconnectingMessage = "Server is closingSERVERDISCONNECT@";
+                
+                // await SendMessageToClients(disconnectingMessage);
                 serverRunning = false;
-                tcpListener.Stop();
+                await Task.Run(() => SendMessageToClients(disconnectingMessage));
+                
+                AddMessage("Server is closing");
+                // serverRunning = false;
+                // tcpListener.Stop();
                 serverName.IsEnabled = true;
                 serverPort.IsEnabled = true;
                 serverBufferSize.IsEnabled = true;

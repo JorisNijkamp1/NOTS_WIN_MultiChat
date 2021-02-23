@@ -28,6 +28,18 @@ namespace _03_ChatClientWPF
             Dispatcher.Invoke(() => listChats.Items.Add(message));
         }
 
+        private void updateDisplay()
+        {
+            Dispatcher.Invoke(() => btnConnect.Visibility = Visibility.Visible);
+            Dispatcher.Invoke(() => btnDisconnect.Visibility = Visibility.Hidden);
+            Dispatcher.Invoke(() => clientName.IsEnabled = true);
+            Dispatcher.Invoke(() => clientIp.IsEnabled = true);
+            Dispatcher.Invoke(() => clientPort.IsEnabled = true);
+            Dispatcher.Invoke(() => clientBufferSize.IsEnabled = true);
+            Dispatcher.Invoke(() => btnSend.IsEnabled = false);
+            Dispatcher.Invoke(() => txtMessage.IsEnabled = false);
+        }
+
         private async void btnConnect_Click(object sender, RoutedEventArgs e)
         {
             try
@@ -103,28 +115,42 @@ namespace _03_ChatClientWPF
 
             networkStream = tcpClient.GetStream();
 
+            string disconnectMessage = "SERVERDISCONNECT@";
+            
             while (networkStream.CanRead)
             {
                 string incomingMessage = "";
                 string message = "";
+                
 
                 while (incomingMessage.IndexOf("@") < 0)
                 {
                     int bytes = await networkStream.ReadAsync(buffer, 0, bufferSize);
                     message = Encoding.ASCII.GetString(buffer, 0, bytes);
-
                     incomingMessage += message;
-                    Debug.WriteLine("message: ", message);
-                    Debug.WriteLine("Incomingmessage " + incomingMessage);
                 }
 
-                message = incomingMessage.Remove(incomingMessage.Length - 1);
+                if (incomingMessage.EndsWith("SERVERDISCONNECT@"))
+                {
+                    message = incomingMessage.Remove(incomingMessage.Length - disconnectMessage.Length);
+                    AddMessage(message);
+                    
+                    // TODO dit op een mooie manier doen!
+                    updateDisplay();
+                    
+                    networkStream.Close();
+                    tcpClient.Close();
+                }
+                else
+                {
+                    message = incomingMessage.Remove(incomingMessage.Length - 1);
 
-                AddMessage(message);
+                    AddMessage(message);
+                }
             }
 
-            networkStream.Close();
-            tcpClient.Close();
+            // networkStream.Close();
+            // tcpClient.Close();
         }
 
         private async void btnDisconnect_Click(object sender, RoutedEventArgs e)
@@ -163,7 +189,7 @@ namespace _03_ChatClientWPF
         {
             try
             {
-                await SendMessageToServer(clientName.Text, txtMessage.Text, ParseStringToInt(clientBufferSize.Text));
+                await SendMessageToServer(clientName.Text, txtMessage.Text);
             }
             catch
             {
@@ -171,7 +197,7 @@ namespace _03_ChatClientWPF
             }
         }
 
-        private async Task SendMessageToServer(string name, string message, int buffersize)
+        private async Task SendMessageToServer(string name, string message)
         {
             try
             {
