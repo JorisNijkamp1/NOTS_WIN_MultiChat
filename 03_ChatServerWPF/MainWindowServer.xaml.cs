@@ -122,7 +122,7 @@ namespace _03_ChatServerWPF
                 tcpClient = await tcpListener.AcceptTcpClientAsync();
                 clientConnectionList.Add(tcpClient);
                 //TODO stoppen en meerdere clients fixen!
-                Task.Run(() => ReceiveData(tcpClient, ParseStringToInt(buffer)));
+                await Task.Run(() => ReceiveData(tcpClient, ParseStringToInt(buffer)));
             }
         }
 
@@ -131,44 +131,45 @@ namespace _03_ChatServerWPF
             Byte[] buffer = new byte[bufferSize];
             networkStream = tcpClient.GetStream();
 
+            string connectIncoming = "@CONNECT";
+            string messageIncoming = "@MESSAGE";
+            string disconnectIncoming = "@DISCONNECT";
+
             while (networkStream.CanRead)
             {
-                using (networkStream = tcpClient.GetStream())
+                string incomingMessage = "";
+
+                while (incomingMessage.IndexOf("@") < 0)
                 {
-                    string connectIncoming = "@CONNECT";
-                    string messageIncoming = "@MESSAGE";
-                    string disconnectIncoming = "@DISCONNECT";
+                    Debug.WriteLine("Incoming message");
+                    int bytes = await networkStream.ReadAsync(buffer, 0, bufferSize);
+                    incomingMessage = Encoding.ASCII.GetString(buffer, 0, bytes);
+                    
+                }
+                
+                Debug.WriteLine("Incoming message" + incomingMessage);
 
-                    int length;
-                    while ((length = networkStream.Read(buffer, 0, buffer.Length)) != 0)
-                    {
-                        // Determine incoming bytes.
-                        var incomingData = new byte[length];
-
-                        // Copy array to Bytes buffer with correct buffersize 
-                        Array.Copy(buffer, 0, incomingData, 0, length);
-
-                        // Convert byte array to string message.						
-                        string clientMessage = Encoding.ASCII.GetString(incomingData);
-
-                        Debug.WriteLine("client message received as: " + clientMessage);
-
-                        if (clientMessage.StartsWith(connectIncoming))
-                        {
-                            await SendMessageToClients(clientMessage + ": connected!");
-                            AddMessageToClientList(clientMessage.Remove(0, connectIncoming.Length));
-                        }
-                        else if (clientMessage.StartsWith(messageIncoming))
-                        {
-                            AddMessageToChatBox(clientMessage.Remove(0, messageIncoming.Length));
-                            await SendMessageToClients(clientMessage);
-                        }
-                        else if (clientMessage.StartsWith(disconnectIncoming))
-                        {
-                            await SendMessageToClients(clientMessage);
-                            AddMessageToChatBox(clientMessage.Remove(0, disconnectIncoming.Length));
-                        }
-                    }
+                if (incomingMessage.EndsWith(connectIncoming))
+                {
+                    string message = incomingMessage.Remove(incomingMessage.Length - connectIncoming.Length);
+                    AddMessageToClientList(message);
+                    await SendMessageToClients(message + ": connected!@");
+                }
+                else if (incomingMessage.EndsWith(messageIncoming))
+                {
+                    string message = incomingMessage.Remove(incomingMessage.Length - messageIncoming.Length);
+                    
+                    AddMessageToChatBox(message);
+                    message += "@";
+                    await SendMessageToClients(message);
+                }
+                else if (incomingMessage.EndsWith(disconnectIncoming))
+                {
+                    string message = incomingMessage.Remove(incomingMessage.Length - disconnectIncoming.Length);
+                
+                    AddMessageToChatBox(message);
+                    message += "@";
+                    await SendMessageToClients(message);
                 }
             }
         }

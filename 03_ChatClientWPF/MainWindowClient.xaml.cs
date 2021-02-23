@@ -1,23 +1,12 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Text.RegularExpressions;
-using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
 
 namespace _03_ChatClientWPF
 {
@@ -67,7 +56,7 @@ namespace _03_ChatClientWPF
             {
                 tcpClient = new TcpClient();
                 await tcpClient.ConnectAsync(ip, port);
-                
+
                 btnConnect.Visibility = Visibility.Hidden;
                 btnDisconnect.Visibility = Visibility.Visible;
                 clientName.IsEnabled = false;
@@ -80,7 +69,7 @@ namespace _03_ChatClientWPF
                 networkStream = tcpClient.GetStream();
 
                 await Task.Run(() => UpdateClientListBox(name));
-                Task.Run(() => ReceiveData(tcpClient, ParseStringToInt(bufferSize)));
+                await Task.Run(() => ReceiveData( ParseStringToInt(bufferSize)));
             }
             catch (SocketException e)
             {
@@ -92,14 +81,15 @@ namespace _03_ChatClientWPF
         {
             try
             {
-                string connectionMessage = "@CONNECT";
+                string connectionMessage = "";
 
                 if (networkStream.CanWrite)
                 {
                     connectionMessage += name;
+                    connectionMessage += "@CONNECT";
                     byte[] clientMessageByteArray = Encoding.ASCII.GetBytes(connectionMessage);
                     await networkStream.WriteAsync(clientMessageByteArray, 0, clientMessageByteArray.Length);
-                    Debug.WriteLine("Client send this message - connect");
+                    Debug.WriteLine($"Client send this message - {connectionMessage}");
                 }
             }
             catch (SocketException socketException)
@@ -108,37 +98,31 @@ namespace _03_ChatClientWPF
             }
         }
 
-        private void ReceiveData(TcpClient tcpClient, int bufferSize)
+        private async void ReceiveData(int bufferSize)
         {
             byte[] buffer = new byte[bufferSize];
+            
+            networkStream = tcpClient.GetStream();
 
             while (networkStream.CanRead)
             {
-                using (networkStream = tcpClient.GetStream())
+                string incomingMessage = "";
+
+                while (incomingMessage.IndexOf("@") < 0)
                 {
-                    string messageIncoming = "@MESSAGE";
-                    string connectIncoming = "@CONNECT";
-                    int length;
-                    while ((length = networkStream.Read(buffer, 0, buffer.Length)) != 0)
-                    {
-                        // Determine incoming bytes.
-                        var incomingData = new byte[length];
-
-                        Array.Copy(buffer, 0, incomingData, 0, length);
-
-                        string clientMessage = Encoding.ASCII.GetString(incomingData);
-
-                        if (clientMessage.StartsWith(messageIncoming))
-                        {
-                            AddMessage(clientMessage.Remove(0, messageIncoming.Length));
-                        }
-                        else if (clientMessage.StartsWith(connectIncoming))
-                        {
-                            AddMessage(clientMessage.Remove(0, connectIncoming.Length));
-                        }
-                    }
+                    Debug.WriteLine("In while als bericht langer is dan 0");
+                    int bytes = await networkStream.ReadAsync(buffer, 0, buffer.Length);
+                    Debug.WriteLine(bytes);
+                    incomingMessage = Encoding.ASCII.GetString(buffer, 0, bytes);
+                    Debug.WriteLine(incomingMessage);
                 }
+                
+                string message = incomingMessage.Remove(incomingMessage.Length - 1);
+                
+                AddMessage(message);
             }
+            networkStream.Close();
+            tcpClient.Close();
         }
 
         private async void btnDisconnect_Click(object sender, RoutedEventArgs e)
@@ -170,8 +154,6 @@ namespace _03_ChatClientWPF
             {
                 byte[] clientMessageByteArray = Encoding.ASCII.GetBytes(fullMessage);
                 await networkStream.WriteAsync(clientMessageByteArray, 0, clientMessageByteArray.Length);
-                tcpClient.Close();
-                networkStream.Close();
                 Debug.WriteLine("Client send this message - wanting to disconnect!");
             }
         }
@@ -180,7 +162,7 @@ namespace _03_ChatClientWPF
         {
             try
             {
-                await SendMessageToServer(clientName.Text, txtMessage.Text, clientBufferSize.Text);
+                await SendMessageToServer(clientName.Text, txtMessage.Text, ParseStringToInt(clientBufferSize.Text));
             }
             catch
             {
@@ -188,21 +170,23 @@ namespace _03_ChatClientWPF
             }
         }
 
-        private async Task SendMessageToServer(string name, string message, string buffersize)
+        private async Task SendMessageToServer(string name, string message, int buffersize)
         {
             try
             {
-                string fullMessage = "@MESSAGE";
+                string fullMessage = "";
                 fullMessage += name + ": ";
-                networkStream = tcpClient.GetStream();
-
-                if (networkStream.CanRead)
+                
+                if (networkStream.CanWrite)
                 {
                     fullMessage += message;
+                    fullMessage += "@MESSAGE";
                     byte[] clientMessageByteArray = Encoding.ASCII.GetBytes(fullMessage);
                     await networkStream.WriteAsync(clientMessageByteArray, 0, clientMessageByteArray.Length);
-                    Debug.WriteLine("Client send this message - while connected");
+                    Debug.WriteLine($"Client send this message - {fullMessage}");
                 }
+                txtMessage.Clear();
+                txtMessage.Focus();
             }
             catch (SocketException exception)
             {
