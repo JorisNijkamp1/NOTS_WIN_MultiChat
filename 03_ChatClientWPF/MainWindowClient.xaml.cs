@@ -115,13 +115,14 @@ namespace _03_ChatClientWPF
 
             networkStream = tcpClient.GetStream();
 
-            string disconnectMessage = "SERVERDISCONNECT@";
-            
+            string serverDisconnectMessage = "SERVERDISCONNECT@";
+            string clientDisconnectMessage = "CLIENTDISCONNECTED@";
+
             while (networkStream.CanRead)
             {
                 string incomingMessage = "";
                 string message = "";
-                
+
 
                 while (incomingMessage.IndexOf("@") < 0)
                 {
@@ -132,14 +133,23 @@ namespace _03_ChatClientWPF
 
                 if (incomingMessage.EndsWith("SERVERDISCONNECT@"))
                 {
-                    message = incomingMessage.Remove(incomingMessage.Length - disconnectMessage.Length);
+                    message = incomingMessage.Remove(incomingMessage.Length - serverDisconnectMessage.Length);
                     AddMessage(message);
-                    
+
                     // TODO dit op een mooie manier doen!
                     updateDisplay();
-                    
+
                     networkStream.Close();
                     tcpClient.Close();
+                }
+                else if (incomingMessage.EndsWith("CLIENTDISCONNECTED@"))
+                {
+                    message = incomingMessage.Remove(incomingMessage.Length - clientDisconnectMessage.Length);
+                    AddMessage(message);
+                    updateDisplay();
+                    networkStream.Close();
+                    tcpClient.Close();
+                    break;
                 }
                 else
                 {
@@ -148,9 +158,6 @@ namespace _03_ChatClientWPF
                     AddMessage(message);
                 }
             }
-
-            // networkStream.Close();
-            // tcpClient.Close();
         }
 
         private async void btnDisconnect_Click(object sender, RoutedEventArgs e)
@@ -158,14 +165,14 @@ namespace _03_ChatClientWPF
             try
             {
                 await DisconnectClient();
-                btnConnect.Visibility = Visibility.Visible;
-                btnDisconnect.Visibility = Visibility.Hidden;
-                clientName.IsEnabled = true;
-                clientIp.IsEnabled = true;
-                clientPort.IsEnabled = true;
-                clientBufferSize.IsEnabled = true;
-                btnSend.IsEnabled = false;
-                txtMessage.IsEnabled = false;
+                // btnConnect.Visibility = Visibility.Visible;
+                // btnDisconnect.Visibility = Visibility.Hidden;
+                // clientName.IsEnabled = true;
+                // clientIp.IsEnabled = true;
+                // clientPort.IsEnabled = true;
+                // clientBufferSize.IsEnabled = true;
+                // btnSend.IsEnabled = false;
+                // txtMessage.IsEnabled = false;
             }
             catch
             {

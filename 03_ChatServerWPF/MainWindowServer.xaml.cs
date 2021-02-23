@@ -38,15 +38,7 @@ namespace _03_ChatServerWPF
 
         private void AddMessageToClientList(string message)
         {
-            if (clientConnectionList.Count == 1)
-            {
-                Dispatcher.Invoke((() => listClients.Items.Add(message)));
-                Dispatcher.Invoke((() => listClients.Items.RemoveAt(0)));
-            }
-            else
-            {
-                Dispatcher.Invoke((() => listClients.Items.Add(message)));
-            }
+            Dispatcher.Invoke((() => listClients.Items.Add(message)));
         }
 
         private void AddMessageToChatBox(string message)
@@ -89,11 +81,11 @@ namespace _03_ChatServerWPF
             try
             {
                 string disconnectingMessage = "Server is closingSERVERDISCONNECT@";
-                
+
                 // await SendMessageToClients(disconnectingMessage);
                 serverRunning = false;
                 await Task.Run(() => SendMessageToClients(disconnectingMessage));
-                
+
                 AddMessage("Server is closing");
                 // serverRunning = false;
                 // tcpListener.Stop();
@@ -163,9 +155,11 @@ namespace _03_ChatServerWPF
                 else if (incomingMessage.EndsWith(disconnectIncoming))
                 {
                     message = incomingMessage.Remove(incomingMessage.Length - disconnectIncoming.Length);
-                    
+
                     AddMessageToChatBox(message);
                     await SendMessageToClients(message + "@");
+                    await SendDisconnectMessageToClient(tcpClient, "DisconnectedCLIENTDISCONNECTED@");
+                    clientConnectionList.Remove(tcpClient);
                 }
                 else if (incomingMessage.EndsWith(connectIncoming))
                 {
@@ -173,6 +167,16 @@ namespace _03_ChatServerWPF
                     AddMessageToClientList(message);
                     await SendMessageToClients(message + ": connected!@");
                 }
+            }
+        }
+
+        private async Task SendDisconnectMessageToClient(TcpClient tcpClient, string message)
+        {
+            networkStream = tcpClient.GetStream();
+            if (networkStream.CanRead)
+            {
+                byte[] serverMessageByteArray = Encoding.ASCII.GetBytes(message);
+                await networkStream.WriteAsync(serverMessageByteArray, 0, serverMessageByteArray.Length);
             }
         }
 
