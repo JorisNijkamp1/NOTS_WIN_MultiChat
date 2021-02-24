@@ -112,7 +112,6 @@ namespace _03_ChatClientWPF
         private async void ReceiveData(int bufferSize)
         {
             byte[] buffer = new byte[bufferSize];
-
             NetworkStream networkStream = tcpClient.GetStream();
 
             string serverDisconnectMessage = "SERVERDISCONNECT@";

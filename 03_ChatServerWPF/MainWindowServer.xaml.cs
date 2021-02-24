@@ -33,16 +33,14 @@ namespace _03_ChatServerWPF
             Dispatcher.Invoke(() => listChats.Items.Add(message));
         }
 
+        private void UpdateClientList(TcpClient tcpClient)
+        {
+            Dispatcher.Invoke(() => listClients.Items.RemoveAt(clientConnectionList.IndexOf(tcpClient)));
+        }
+
         private void AddMessageToClientList(string message)
         {
-            if (clientConnectionList.Count == 1)
-            {
-                Dispatcher.Invoke((() => listClients.Items.Add(message)));
-            }
-            else
-            {
-                Dispatcher.Invoke((() => listClients.Items.Add(message)));
-            }
+            Dispatcher.Invoke((() => listClients.Items.Add(message)));
         }
 
         private void AddMessageToChatBox(string message)
@@ -54,19 +52,26 @@ namespace _03_ChatServerWPF
         {
             try
             {
-                if (PortValidation(serverPort.Text)
-                    && serverBufferSize.Text.All(char.IsDigit)
-                    && IpValidation(serverIpAdress.Text))
+                if (serverName.Text.Length > 0)
                 {
-                    AddMessage("Server is starting");
-                    await CreateServerAsync(
-                        ParseStringToInt(serverPort.Text),
-                        serverBufferSize.Text
-                    );
+                    if (BufferValidation(serverBufferSize.Text)
+                        && IpValidation(serverIpAdress.Text)
+                        && PortValidation(serverPort.Text))
+                    {
+                        AddMessage("Server is starting");
+                        await CreateServerAsync(
+                            ParseStringToInt(serverPort.Text),
+                            serverBufferSize.Text
+                        );
+                    }
+                    else
+                    {
+                        MessageBox.Show("Invalid input", "Invalid input");
+                    }
                 }
                 else
                 {
-                    MessageBox.Show("Invalid input", "Invalid input");
+                    MessageBox.Show("Fill in a server name", "Invalid input");
                 }
             }
             catch (SocketException socketException)
@@ -79,12 +84,11 @@ namespace _03_ChatServerWPF
         {
             try
             {
-                
                 string disconnectingMessage = "Server is closingSERVERDISCONNECT@";
 
                 await Task.Run(() => SendMessageToClients(disconnectingMessage));
 
-                
+
                 AddMessage("Server is closing");
 
                 Debug.WriteLine("Serverrunnigset to false");
@@ -117,7 +121,7 @@ namespace _03_ChatServerWPF
             tcpListener.Start();
 
             AddMessage($"Listening for clients on port: {port}");
-            
+
             while (serverRunning)
             {
                 tcpClient = await tcpListener.AcceptTcpClientAsync();
@@ -133,7 +137,7 @@ namespace _03_ChatServerWPF
 
         private async void ReceiveData(TcpClient tcpClient, int bufferSize)
         {
-            Byte[] buffer = new byte[bufferSize];
+            byte[] buffer = new byte[bufferSize];
             NetworkStream networkStream = tcpClient.GetStream();
 
             string connectIncoming = "CONNECT@";
@@ -166,6 +170,7 @@ namespace _03_ChatServerWPF
                     AddMessageToChatBox(message);
                     await SendMessageToClients(message + "@");
                     await SendDisconnectMessageToClient(tcpClient, "CLIENTDISCONNECTED@");
+                    UpdateClientList(tcpClient);
                     clientConnectionList.Remove(tcpClient);
                 }
                 else if (incomingMessage.EndsWith(connectIncoming))
@@ -179,11 +184,18 @@ namespace _03_ChatServerWPF
 
         private async Task SendDisconnectMessageToClient(TcpClient tcpClient, string message)
         {
-            NetworkStream networkStream = tcpClient.GetStream();
-            if (networkStream.CanRead)
+            try
             {
-                byte[] serverMessageByteArray = Encoding.ASCII.GetBytes(message);
-                await networkStream.WriteAsync(serverMessageByteArray, 0, serverMessageByteArray.Length);
+                NetworkStream networkStream = tcpClient.GetStream();
+                if (networkStream.CanRead)
+                {
+                    byte[] serverMessageByteArray = Encoding.ASCII.GetBytes(message);
+                    await networkStream.WriteAsync(serverMessageByteArray, 0, serverMessageByteArray.Length);
+                }
+            }
+            catch (Exception e)
+            {
+                MessageBox.Show(e.Message);
             }
         }
 
@@ -219,6 +231,12 @@ namespace _03_ChatServerWPF
         private bool IpValidation(string input)
         {
             return IPAddress.TryParse(input, out var ip);
+        }
+
+        private bool BufferValidation(string input)
+        {
+            int bufferSizeInt = ParseStringToInt(input);
+            return input.All(char.IsDigit) && bufferSizeInt > 0;
         }
     }
 }
