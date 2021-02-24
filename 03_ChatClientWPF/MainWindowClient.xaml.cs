@@ -46,7 +46,7 @@ namespace _03_ChatClientWPF
             {
                 if (NameValidation(clientName.Text) && IpValidation(clientIp.Text)
                                                     && PortValidation(clientPort.Text) &&
-                                                    clientBufferSize.Text.All(char.IsDigit))
+                                                    BufferValidation(clientBufferSize.Text))
                 {
                     int port = ParseStringToInt(clientPort.Text);
                     await CreateConnectionAsync(clientName.Text, clientIp.Text, port, clientBufferSize.Text);
@@ -113,7 +113,7 @@ namespace _03_ChatClientWPF
         {
             byte[] buffer = new byte[bufferSize];
 
-            networkStream = tcpClient.GetStream();
+            NetworkStream networkStream = tcpClient.GetStream();
 
             string serverDisconnectMessage = "SERVERDISCONNECT@";
             string clientDisconnectMessage = "CLIENTDISCONNECTED@";
@@ -122,41 +122,39 @@ namespace _03_ChatClientWPF
             {
                 string incomingMessage = "";
                 string message = "";
-
-
+                
                 while (incomingMessage.IndexOf("@") < 0)
                 {
                     int bytes = await networkStream.ReadAsync(buffer, 0, bufferSize);
                     message = Encoding.ASCII.GetString(buffer, 0, bytes);
                     incomingMessage += message;
                 }
+                Debug.WriteLine(incomingMessage);
 
                 if (incomingMessage.EndsWith("SERVERDISCONNECT@"))
                 {
                     message = incomingMessage.Remove(incomingMessage.Length - serverDisconnectMessage.Length);
                     AddMessage(message);
 
-                    // TODO dit op een mooie manier doen!
                     updateDisplay();
 
                     networkStream.Close();
                     tcpClient.Close();
+                    break;
                 }
-                else if (incomingMessage.EndsWith("CLIENTDISCONNECTED@"))
+
+                if (incomingMessage.EndsWith("CLIENTDISCONNECTED@"))
                 {
-                    message = incomingMessage.Remove(incomingMessage.Length - clientDisconnectMessage.Length);
-                    AddMessage(message);
+                    AddMessage("Disconnected!");
                     updateDisplay();
                     networkStream.Close();
                     tcpClient.Close();
                     break;
                 }
-                else
-                {
-                    message = incomingMessage.Remove(incomingMessage.Length - 1);
 
-                    AddMessage(message);
-                }
+                message = incomingMessage.Remove(incomingMessage.Length - 1);
+
+                AddMessage(message);
             }
         }
 
@@ -165,14 +163,6 @@ namespace _03_ChatClientWPF
             try
             {
                 await DisconnectClient();
-                // btnConnect.Visibility = Visibility.Visible;
-                // btnDisconnect.Visibility = Visibility.Hidden;
-                // clientName.IsEnabled = true;
-                // clientIp.IsEnabled = true;
-                // clientPort.IsEnabled = true;
-                // clientBufferSize.IsEnabled = true;
-                // btnSend.IsEnabled = false;
-                // txtMessage.IsEnabled = false;
             }
             catch
             {
@@ -185,6 +175,8 @@ namespace _03_ChatClientWPF
             string disconnectMessage = clientName.Text + ": disconnected";
             disconnectMessage += "DISCONNECT@";
 
+            networkStream = tcpClient.GetStream();
+            
             if (networkStream.CanRead)
             {
                 byte[] clientMessageByteArray = Encoding.ASCII.GetBytes(disconnectMessage);
@@ -248,6 +240,12 @@ namespace _03_ChatClientWPF
         {
             const int maxPortNumber = 65535;
             return input.All(char.IsDigit) && ParseStringToInt(input) <= maxPortNumber;
+        }
+
+        private bool BufferValidation(string input)
+        {
+            int bufferSizeInt = ParseStringToInt(input);
+            return input.All(char.IsDigit) && bufferSizeInt > 0;
         }
     }
 }
