@@ -225,8 +225,8 @@ namespace _03_ChatServerWPF
                 {
                     message = incomingMessage.Remove(incomingMessage.Length - disconnectIncoming.Length);
                     AddMessageToChatBox(message);
-                    await SendMessageToClients(message + "@");
                     await SendDisconnectMessageToClient(tcpClient, "CLIENTDC@");
+                    await SendMessageToClients(message + "@");
                     UpdateClientList(tcpClient);
                     clientConnectionList.Remove(tcpClient);
                 }

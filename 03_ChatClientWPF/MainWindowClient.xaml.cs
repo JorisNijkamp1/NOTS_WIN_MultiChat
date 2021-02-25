@@ -165,6 +165,7 @@ namespace _03_ChatClientWPF
                     break;
                 }
 
+                // this if statement constructing determines what to do with the message.
                 if (incomingMessage.EndsWith("SERVERDISCONNECT@"))
                 {
                     message = incomingMessage.Remove(incomingMessage.Length - serverDisconnectMessage.Length);
