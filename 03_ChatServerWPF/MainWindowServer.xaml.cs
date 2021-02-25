@@ -41,6 +41,11 @@ namespace _03_ChatServerWPF
             }
         }
 
+        private void EmptyClientList()
+        {
+            Dispatcher.Invoke(() => listClients.Items.Clear());
+        }
+
         private void AddMessageToClientList(string message)
         {
             Dispatcher.Invoke((() => listClients.Items.Add(message)));
@@ -53,33 +58,26 @@ namespace _03_ChatServerWPF
 
         private async void startServerButton_Click(object sender, RoutedEventArgs e)
         {
-            try
+            if (serverName.Text.Length > 0)
             {
-                if (serverName.Text.Length > 0)
+                if (BufferValidation(serverBufferSize.Text)
+                    && IpValidation(serverIpAdress.Text)
+                    && PortValidation(serverPort.Text))
                 {
-                    if (BufferValidation(serverBufferSize.Text)
-                        && IpValidation(serverIpAdress.Text)
-                        && PortValidation(serverPort.Text))
-                    {
-                        AddMessage("Server is starting");
-                        await CreateServerAsync(
-                            ParseStringToInt(serverPort.Text),
-                            serverBufferSize.Text
-                        );
-                    }
-                    else
-                    {
-                        MessageBox.Show("Invalid input", "Invalid input");
-                    }
+                    AddMessage("Server is starting");
+                    await CreateServerAsync(
+                        ParseStringToInt(serverPort.Text),
+                        serverBufferSize.Text
+                    );
                 }
                 else
                 {
-                    MessageBox.Show("Fill in a server name", "Invalid input");
+                    MessageBox.Show("Invalid input", "Invalid input");
                 }
             }
-            catch (SocketException socketException)
+            else
             {
-                MessageBox.Show(socketException.Message);
+                MessageBox.Show("Fill in a server name", "Invalid input");
             }
         }
 
@@ -91,11 +89,15 @@ namespace _03_ChatServerWPF
 
                 await Task.Run(() => SendMessageToClients(disconnectingMessage));
 
+                EmptyClientList();
+                foreach (var client in clientConnectionList)
+                {
+                    client.Close();
+                }
 
                 AddMessage("Server is closing");
 
-                Debug.WriteLine("Serverrunnigset to false");
-                serverRunning = false;
+                // serverRunning = false;
                 serverName.IsEnabled = true;
                 serverPort.IsEnabled = true;
                 serverBufferSize.IsEnabled = true;
@@ -118,23 +120,24 @@ namespace _03_ChatServerWPF
             serverIpAdress.IsEnabled = false;
             btnStop.Visibility = Visibility.Visible;
             btnStart.Visibility = Visibility.Hidden;
-
             tcpListener = new TcpListener(IPAddress.Any, port);
-            tcpListener.Start();
 
             AddMessage($"Listening for clients on port: {port}");
-
-            while (serverRunning)
+            try
             {
-                tcpClient = await tcpListener.AcceptTcpClientAsync();
-
-                clientConnectionList.Add(tcpClient);
-                //TODO stoppen en meerdere clients fixen!
-                await Task.Run(() => ReceiveData(tcpClient, ParseStringToInt(buffer)));
+                tcpListener.Start();
+                while (serverRunning)
+                {
+                    tcpClient = await tcpListener.AcceptTcpClientAsync();
+                    clientConnectionList.Add(tcpClient);
+                    await Task.Run(() => ReceiveData(tcpClient, ParseStringToInt(buffer)));
+                }
             }
-
-            Debug.WriteLine("Out while loop van serverrunning!");
-            tcpListener.Stop();
+            catch (SocketException)
+            {
+                tcpListener.Stop();
+                serverRunning = false;
+            }
         }
 
         private async void ReceiveData(TcpClient tcpClient, int bufferSize)
@@ -162,12 +165,15 @@ namespace _03_ChatServerWPF
                 }
                 catch (IOException)
                 {
+                    networkStream.Close();
                     break;
                 }
                 catch (ObjectDisposedException)
                 {
+                    networkStream.Close();
                     break;
                 }
+                
 
                 if (incomingMessage.EndsWith(messageIncoming))
                 {
@@ -178,9 +184,7 @@ namespace _03_ChatServerWPF
                 }
                 else if (incomingMessage.EndsWith(disconnectIncoming))
                 {
-                    Debug.WriteLine("INCOMING MESSAGE " + incomingMessage);
                     message = incomingMessage.Remove(incomingMessage.Length - disconnectIncoming.Length);
-                    Debug.WriteLine("DISCONNECT MESSAGE " + message);
                     AddMessageToChatBox(message);
                     await SendMessageToClients(message + "@");
                     await SendDisconnectMessageToClient(tcpClient, "CLIENTDC@");
@@ -201,7 +205,6 @@ namespace _03_ChatServerWPF
             networkStream = tcpClient.GetStream();
             if (networkStream.CanRead)
             {
-                Debug.WriteLine("MESSAGE SEND TO CLIENT AFTER DC" + message);
                 byte[] serverMessageByteArray = Encoding.ASCII.GetBytes(message);
                 await networkStream.WriteAsync(serverMessageByteArray, 0, serverMessageByteArray.Length);
             }
@@ -209,17 +212,25 @@ namespace _03_ChatServerWPF
 
         private async Task SendMessageToClients(string message)
         {
-            if (clientConnectionList.Count > 0)
+            try
             {
-                foreach (var client in clientConnectionList)
+                if (clientConnectionList.Count > 0)
                 {
-                    networkStream = client.GetStream();
-                    if (networkStream.CanRead)
+                    foreach (var client in clientConnectionList)
                     {
-                        byte[] serverMessageByteArray = Encoding.ASCII.GetBytes(message);
-                        await networkStream.WriteAsync(serverMessageByteArray, 0, serverMessageByteArray.Length);
+                        networkStream = client.GetStream();
+                        if (networkStream.CanRead)
+                        {
+                            byte[] serverMessageByteArray = Encoding.ASCII.GetBytes(message);
+                            await networkStream.WriteAsync(serverMessageByteArray, 0, serverMessageByteArray.Length);
+                        }
                     }
                 }
+
+            }
+            catch (ObjectDisposedException)
+            {
+                
             }
         }
 
