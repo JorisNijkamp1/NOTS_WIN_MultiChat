@@ -107,7 +107,7 @@ namespace _03_ChatServerWPF
             {
                 string disconnectingMessage = "Server is closingSERVERDISCONNECT@";
 
-                await Task.Run(() => SendMessageToClients(disconnectingMessage));
+                await SendMessageToClients(disconnectingMessage);
 
                 EmptyClientList();
 
