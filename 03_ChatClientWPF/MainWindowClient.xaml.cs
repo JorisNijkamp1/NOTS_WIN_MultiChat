@@ -260,7 +260,7 @@ namespace _03_ChatClientWPF
 
         private async void close_client(object sender, CancelEventArgs e)
         {
-            if (tcpClient.Connected)
+            if (tcpClient != null && tcpClient.Connected)
             {
                 await DisconnectClient();
             }

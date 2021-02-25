@@ -28,12 +28,7 @@ namespace _03_ChatServerWPF
         {
             InitializeComponent();
         }
-
-        private void AddMessage(string message)
-        {
-            Dispatcher.Invoke(() => listChats.Items.Add(message));
-        }
-
+        
         private void UpdateClientList(TcpClient tcpClient)
         {
             if (clientConnectionList.Count > 0 && clientConnectionList.Contains(tcpClient))
@@ -98,7 +93,7 @@ namespace _03_ChatServerWPF
                     client.Close();
                 }
 
-                AddMessage("Server is closing");
+                AddMessageToChatBox("Server is closing");
 
                 serverRunning = false;
                 tcpListener.Stop();
@@ -121,7 +116,7 @@ namespace _03_ChatServerWPF
             {
                 tcpListener = new TcpListener(IPAddress.Any, port);
                 tcpListener.Start();
-                AddMessage("Server is starting");
+                AddMessageToChatBox("Server is starting");
                 serverRunning = true;
                 serverName.IsEnabled = false;
                 serverPort.IsEnabled = false;
@@ -129,7 +124,7 @@ namespace _03_ChatServerWPF
                 serverIpAdress.IsEnabled = false;
                 btnStop.Visibility = Visibility.Visible;
                 btnStart.Visibility = Visibility.Hidden;
-                AddMessage($"Listening for clients on port: {port}");
+                AddMessageToChatBox($"Listening for clients on port: {port}");
                 while (serverRunning)
                 {
                     try
@@ -150,7 +145,7 @@ namespace _03_ChatServerWPF
                 MessageBox.Show("Cant connect server with these values, check your ipadress or port!", "Error", MessageBoxButton.OK, MessageBoxImage.Stop);
             }
         }
-
+        
         private async void ReceiveData(TcpClient tcpClient, int bufferSize)
         {
             byte[] buffer = new byte[bufferSize];
@@ -256,7 +251,7 @@ namespace _03_ChatServerWPF
 
         private async void close_server(object sender, CancelEventArgs e)
         {
-            if (tcpListener.Server.Connected)
+            if (serverRunning && tcpListener.Server.Connected)
             {
                 string disconnectingMessage = "Server is closingSERVERDISCONNECT@";
 
