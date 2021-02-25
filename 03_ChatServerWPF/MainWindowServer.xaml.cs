@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
@@ -21,7 +22,6 @@ namespace _03_ChatServerWPF
         NetworkStream networkStream;
         private bool serverRunning;
         private List<TcpClient> clientConnectionList = new List<TcpClient>();
-        private bool test = true;
 
         public MainWindowServer()
         {
@@ -35,7 +35,10 @@ namespace _03_ChatServerWPF
 
         private void UpdateClientList(TcpClient tcpClient)
         {
-            Dispatcher.Invoke(() => listClients.Items.RemoveAt(clientConnectionList.IndexOf(tcpClient)));
+            if (clientConnectionList.Count > 0 && clientConnectionList.Contains(tcpClient))
+            {
+                Dispatcher.Invoke(() => listClients.Items.RemoveAt(clientConnectionList.IndexOf(tcpClient)));
+            }
         }
 
         private void AddMessageToClientList(string message)
@@ -99,7 +102,6 @@ namespace _03_ChatServerWPF
                 serverIpAdress.IsEnabled = true;
                 btnStop.Visibility = Visibility.Hidden;
                 btnStart.Visibility = Visibility.Visible;
-                test = false;
             }
             catch
             {
@@ -149,11 +151,22 @@ namespace _03_ChatServerWPF
                 string incomingMessage = "";
                 string message = "";
 
-                while (incomingMessage.IndexOf("@") < 0)
+                try
                 {
-                    int bytes = await networkStream.ReadAsync(buffer, 0, bufferSize);
-                    message = Encoding.ASCII.GetString(buffer, 0, bytes);
-                    incomingMessage += message;
+                    while (incomingMessage.IndexOf("@") < 0)
+                    {
+                        int bytes = await networkStream.ReadAsync(buffer, 0, bufferSize);
+                        message = Encoding.ASCII.GetString(buffer, 0, bytes);
+                        incomingMessage += message;
+                    }
+                }
+                catch (IOException)
+                {
+                    break;
+                }
+                catch (ObjectDisposedException)
+                {
+                    break;
                 }
 
                 if (incomingMessage.EndsWith(messageIncoming))
@@ -165,11 +178,12 @@ namespace _03_ChatServerWPF
                 }
                 else if (incomingMessage.EndsWith(disconnectIncoming))
                 {
+                    Debug.WriteLine("INCOMING MESSAGE " + incomingMessage);
                     message = incomingMessage.Remove(incomingMessage.Length - disconnectIncoming.Length);
-
+                    Debug.WriteLine("DISCONNECT MESSAGE " + message);
                     AddMessageToChatBox(message);
                     await SendMessageToClients(message + "@");
-                    await SendDisconnectMessageToClient(tcpClient, "CLIENTDISCONNECTED@");
+                    await SendDisconnectMessageToClient(tcpClient, "CLIENTDC@");
                     UpdateClientList(tcpClient);
                     clientConnectionList.Remove(tcpClient);
                 }
@@ -184,18 +198,12 @@ namespace _03_ChatServerWPF
 
         private async Task SendDisconnectMessageToClient(TcpClient tcpClient, string message)
         {
-            try
+            networkStream = tcpClient.GetStream();
+            if (networkStream.CanRead)
             {
-                NetworkStream networkStream = tcpClient.GetStream();
-                if (networkStream.CanRead)
-                {
-                    byte[] serverMessageByteArray = Encoding.ASCII.GetBytes(message);
-                    await networkStream.WriteAsync(serverMessageByteArray, 0, serverMessageByteArray.Length);
-                }
-            }
-            catch (Exception e)
-            {
-                MessageBox.Show(e.Message);
+                Debug.WriteLine("MESSAGE SEND TO CLIENT AFTER DC" + message);
+                byte[] serverMessageByteArray = Encoding.ASCII.GetBytes(message);
+                await networkStream.WriteAsync(serverMessageByteArray, 0, serverMessageByteArray.Length);
             }
         }
 

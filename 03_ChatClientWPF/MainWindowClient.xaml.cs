@@ -1,4 +1,5 @@
 ﻿using System;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Linq;
 using System.Net;
@@ -112,7 +113,7 @@ namespace _03_ChatClientWPF
         private async void ReceiveData(int bufferSize)
         {
             byte[] buffer = new byte[bufferSize];
-            NetworkStream networkStream = tcpClient.GetStream();
+            networkStream = tcpClient.GetStream();
 
             string serverDisconnectMessage = "SERVERDISCONNECT@";
             string clientDisconnectMessage = "CLIENTDISCONNECTED@";
@@ -121,13 +122,14 @@ namespace _03_ChatClientWPF
             {
                 string incomingMessage = "";
                 string message = "";
-                
+
                 while (incomingMessage.IndexOf("@") < 0)
                 {
                     int bytes = await networkStream.ReadAsync(buffer, 0, bufferSize);
                     message = Encoding.ASCII.GetString(buffer, 0, bytes);
                     incomingMessage += message;
                 }
+
                 Debug.WriteLine(incomingMessage);
 
                 if (incomingMessage.EndsWith("SERVERDISCONNECT@"))
@@ -137,17 +139,14 @@ namespace _03_ChatClientWPF
 
                     updateDisplay();
 
-                    networkStream.Close();
-                    tcpClient.Close();
                     break;
                 }
 
-                if (incomingMessage.EndsWith("CLIENTDISCONNECTED@"))
+                if (incomingMessage.EndsWith("CLIENTDC@"))
                 {
+                    Debug.WriteLine("Hier gaat die fout");
                     AddMessage("Disconnected!");
                     updateDisplay();
-                    networkStream.Close();
-                    tcpClient.Close();
                     break;
                 }
 
@@ -155,6 +154,9 @@ namespace _03_ChatClientWPF
 
                 AddMessage(message);
             }
+
+            networkStream.Close();
+            tcpClient.Close();
         }
 
         private async void btnDisconnect_Click(object sender, RoutedEventArgs e)
@@ -175,7 +177,7 @@ namespace _03_ChatClientWPF
             disconnectMessage += "DISCONNECT@";
 
             networkStream = tcpClient.GetStream();
-            
+
             if (networkStream.CanRead)
             {
                 byte[] clientMessageByteArray = Encoding.ASCII.GetBytes(disconnectMessage);
@@ -199,18 +201,25 @@ namespace _03_ChatClientWPF
         {
             try
             {
-                string fullMessage = name + ": " + message;
-                fullMessage += "MESSAGE@";
-
-                if (networkStream.CanWrite)
+                if (message.Length != 0)
                 {
-                    byte[] clientMessageByteArray = Encoding.ASCII.GetBytes(fullMessage);
-                    await networkStream.WriteAsync(clientMessageByteArray, 0, clientMessageByteArray.Length);
-                    Debug.WriteLine($"Client send this message - {fullMessage}");
-                }
+                    string fullMessage = name + ": " + message;
+                    fullMessage += "MESSAGE@";
 
-                txtMessage.Clear();
-                txtMessage.Focus();
+                    if (networkStream.CanWrite)
+                    {
+                        byte[] clientMessageByteArray = Encoding.ASCII.GetBytes(fullMessage);
+                        await networkStream.WriteAsync(clientMessageByteArray, 0, clientMessageByteArray.Length);
+                        Debug.WriteLine($"Client send this message - {fullMessage}");
+                    }
+
+                    txtMessage.Clear();
+                    txtMessage.Focus();
+                }
+                else
+                {
+                    MessageBox.Show("Fill in a message", "Warning", MessageBoxButton.OK, MessageBoxImage.Warning);
+                }
             }
             catch (SocketException exception)
             {
@@ -245,6 +254,14 @@ namespace _03_ChatClientWPF
         {
             int bufferSizeInt = ParseStringToInt(input);
             return input.All(char.IsDigit) && bufferSizeInt > 0;
+        }
+
+        private async void close_client(object sender, CancelEventArgs e)
+        {
+            if (tcpClient.Connected)
+            {
+                await DisconnectClient();
+            }
         }
     }
 }
