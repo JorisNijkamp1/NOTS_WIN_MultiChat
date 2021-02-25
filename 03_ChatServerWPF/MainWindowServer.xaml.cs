@@ -65,7 +65,6 @@ namespace _03_ChatServerWPF
                     && IpValidation(serverIpAdress.Text)
                     && PortValidation(serverPort.Text))
                 {
-                    AddMessage("Server is starting");
                     await CreateServerAsync(
                         ParseStringToInt(serverPort.Text),
                         serverBufferSize.Text
@@ -118,32 +117,37 @@ namespace _03_ChatServerWPF
 
         private async Task CreateServerAsync(int port, string buffer)
         {
-            serverRunning = true;
-            serverName.IsEnabled = false;
-            serverPort.IsEnabled = false;
-            serverBufferSize.IsEnabled = false;
-            serverIpAdress.IsEnabled = false;
-            btnStop.Visibility = Visibility.Visible;
-            btnStart.Visibility = Visibility.Hidden;
-            tcpListener = new TcpListener(IPAddress.Any, port);
-
-            AddMessage($"Listening for clients on port: {port}");
-
-            tcpListener.Start();
-
-            while (serverRunning)
+            try
             {
-                try
+                tcpListener = new TcpListener(IPAddress.Any, port);
+                tcpListener.Start();
+                AddMessage("Server is starting");
+                serverRunning = true;
+                serverName.IsEnabled = false;
+                serverPort.IsEnabled = false;
+                serverBufferSize.IsEnabled = false;
+                serverIpAdress.IsEnabled = false;
+                btnStop.Visibility = Visibility.Visible;
+                btnStart.Visibility = Visibility.Hidden;
+                AddMessage($"Listening for clients on port: {port}");
+                while (serverRunning)
                 {
-                    tcpClient = await tcpListener.AcceptTcpClientAsync();
-                }
-                catch (ObjectDisposedException)
-                {
-                    break;
-                }
+                    try
+                    {
+                        tcpClient = await tcpListener.AcceptTcpClientAsync();
+                    }
+                    catch (ObjectDisposedException)
+                    {
+                        break;
+                    }
 
-                clientConnectionList.Add(tcpClient);
-                await Task.Run(() => ReceiveData(tcpClient, ParseStringToInt(buffer)));
+                    clientConnectionList.Add(tcpClient);
+                    await Task.Run(() => ReceiveData(tcpClient, ParseStringToInt(buffer)));
+                }
+            }
+            catch (SocketException)
+            {
+                MessageBox.Show("Cant connect server with these values, check your ipadress or port!", "Error", MessageBoxButton.OK, MessageBoxImage.Stop);
             }
         }
 
