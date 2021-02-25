@@ -1,6 +1,7 @@
 ﻿using System;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
@@ -101,10 +102,9 @@ namespace _03_ChatClientWPF
                 {
                     byte[] clientMessageByteArray = Encoding.ASCII.GetBytes(connectionMessage);
                     await networkStream.WriteAsync(clientMessageByteArray, 0, clientMessageByteArray.Length);
-                    Debug.WriteLine($"Client send this message - {connectionMessage}");
                 }
             }
-            catch (SocketException socketException)
+            catch (SocketException)
             {
                 MessageBox.Show("Er gaat iets fout.", "Error");
             }
@@ -113,7 +113,7 @@ namespace _03_ChatClientWPF
         private async void ReceiveData(int bufferSize)
         {
             byte[] buffer = new byte[bufferSize];
-            networkStream = tcpClient.GetStream();
+            NetworkStream networkStream = tcpClient.GetStream();
 
             string serverDisconnectMessage = "SERVERDISCONNECT@";
             string clientDisconnectMessage = "CLIENTDISCONNECTED@";
@@ -123,28 +123,30 @@ namespace _03_ChatClientWPF
                 string incomingMessage = "";
                 string message = "";
 
-                while (incomingMessage.IndexOf("@") < 0)
+                try
                 {
-                    int bytes = await networkStream.ReadAsync(buffer, 0, bufferSize);
-                    message = Encoding.ASCII.GetString(buffer, 0, bytes);
-                    incomingMessage += message;
+                    while (incomingMessage.IndexOf("@") < 0)
+                    {
+                        int bytes = await networkStream.ReadAsync(buffer, 0, bufferSize);
+                        message = Encoding.ASCII.GetString(buffer, 0, bytes);
+                        incomingMessage += message;
+                    }
                 }
-
-                Debug.WriteLine(incomingMessage);
+                catch (IOException)
+                {
+                    break;
+                }
 
                 if (incomingMessage.EndsWith("SERVERDISCONNECT@"))
                 {
                     message = incomingMessage.Remove(incomingMessage.Length - serverDisconnectMessage.Length);
                     AddMessage(message);
-
                     updateDisplay();
-
                     break;
                 }
 
                 if (incomingMessage.EndsWith("CLIENTDC@"))
                 {
-                    Debug.WriteLine("Hier gaat die fout");
                     AddMessage("Disconnected!");
                     updateDisplay();
                     break;
@@ -157,6 +159,7 @@ namespace _03_ChatClientWPF
 
             networkStream.Close();
             tcpClient.Close();
+            updateDisplay();
         }
 
         private async void btnDisconnect_Click(object sender, RoutedEventArgs e)
@@ -210,7 +213,6 @@ namespace _03_ChatClientWPF
                     {
                         byte[] clientMessageByteArray = Encoding.ASCII.GetBytes(fullMessage);
                         await networkStream.WriteAsync(clientMessageByteArray, 0, clientMessageByteArray.Length);
-                        Debug.WriteLine($"Client send this message - {fullMessage}");
                     }
 
                     txtMessage.Clear();
@@ -247,7 +249,7 @@ namespace _03_ChatClientWPF
         private bool PortValidation(string input)
         {
             const int maxPortNumber = 65535;
-            return input.All(char.IsDigit) && ParseStringToInt(input) <= maxPortNumber;
+            return input.All(char.IsDigit) && ParseStringToInt(input) <= maxPortNumber && ParseStringToInt(input) > 0;
         }
 
         private bool BufferValidation(string input)

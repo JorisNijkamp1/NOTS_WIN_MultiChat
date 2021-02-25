@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -90,6 +91,9 @@ namespace _03_ChatServerWPF
                 await Task.Run(() => SendMessageToClients(disconnectingMessage));
 
                 EmptyClientList();
+
+                clientConnectionList.Clear();
+
                 foreach (var client in clientConnectionList)
                 {
                     client.Close();
@@ -97,7 +101,8 @@ namespace _03_ChatServerWPF
 
                 AddMessage("Server is closing");
 
-                // serverRunning = false;
+                serverRunning = false;
+                tcpListener.Stop();
                 serverName.IsEnabled = true;
                 serverPort.IsEnabled = true;
                 serverBufferSize.IsEnabled = true;
@@ -123,20 +128,22 @@ namespace _03_ChatServerWPF
             tcpListener = new TcpListener(IPAddress.Any, port);
 
             AddMessage($"Listening for clients on port: {port}");
-            try
+
+            tcpListener.Start();
+
+            while (serverRunning)
             {
-                tcpListener.Start();
-                while (serverRunning)
+                try
                 {
                     tcpClient = await tcpListener.AcceptTcpClientAsync();
-                    clientConnectionList.Add(tcpClient);
-                    await Task.Run(() => ReceiveData(tcpClient, ParseStringToInt(buffer)));
                 }
-            }
-            catch (SocketException)
-            {
-                tcpListener.Stop();
-                serverRunning = false;
+                catch (ObjectDisposedException)
+                {
+                    break;
+                }
+
+                clientConnectionList.Add(tcpClient);
+                await Task.Run(() => ReceiveData(tcpClient, ParseStringToInt(buffer)));
             }
         }
 
@@ -165,15 +172,12 @@ namespace _03_ChatServerWPF
                 }
                 catch (IOException)
                 {
-                    networkStream.Close();
                     break;
                 }
                 catch (ObjectDisposedException)
                 {
-                    networkStream.Close();
                     break;
                 }
-                
 
                 if (incomingMessage.EndsWith(messageIncoming))
                 {
@@ -212,25 +216,17 @@ namespace _03_ChatServerWPF
 
         private async Task SendMessageToClients(string message)
         {
-            try
+            if (clientConnectionList.Count > 0)
             {
-                if (clientConnectionList.Count > 0)
+                foreach (var client in clientConnectionList)
                 {
-                    foreach (var client in clientConnectionList)
+                    networkStream = client.GetStream();
+                    if (networkStream.CanRead)
                     {
-                        networkStream = client.GetStream();
-                        if (networkStream.CanRead)
-                        {
-                            byte[] serverMessageByteArray = Encoding.ASCII.GetBytes(message);
-                            await networkStream.WriteAsync(serverMessageByteArray, 0, serverMessageByteArray.Length);
-                        }
+                        byte[] serverMessageByteArray = Encoding.ASCII.GetBytes(message);
+                        await networkStream.WriteAsync(serverMessageByteArray, 0, serverMessageByteArray.Length);
                     }
                 }
-
-            }
-            catch (ObjectDisposedException)
-            {
-                
             }
         }
 
@@ -244,7 +240,7 @@ namespace _03_ChatServerWPF
         private bool PortValidation(string input)
         {
             const int maxPortNumber = 65535;
-            return input.All(char.IsDigit) && ParseStringToInt(input) <= maxPortNumber;
+            return input.All(char.IsDigit) && ParseStringToInt(input) <= maxPortNumber && ParseStringToInt(input) > 0;
         }
 
         private bool IpValidation(string input)
@@ -256,6 +252,18 @@ namespace _03_ChatServerWPF
         {
             int bufferSizeInt = ParseStringToInt(input);
             return input.All(char.IsDigit) && bufferSizeInt > 0;
+        }
+
+        private async void close_server(object sender, CancelEventArgs e)
+        {
+            if (tcpListener.Server.Connected)
+            {
+                string disconnectingMessage = "Server is closingSERVERDISCONNECT@";
+
+                await Task.Run(() => SendMessageToClients(disconnectingMessage));
+
+                tcpListener.Stop();
+            }
         }
     }
 }
