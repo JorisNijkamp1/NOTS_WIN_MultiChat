@@ -25,11 +25,18 @@ namespace _03_ChatClientWPF
             InitializeComponent();
         }
 
+        /// <summary>
+        /// Add a message to the chatBox
+        /// </summary>
+        /// <param name="message"></param>
         private void AddMessage(string message)
         {
             Dispatcher.Invoke(() => listChats.Items.Add(message));
         }
 
+        /// <summary>
+        /// Updates the display after server message
+        /// </summary>
         private void updateDisplay()
         {
             Dispatcher.Invoke(() => btnConnect.Visibility = Visibility.Visible);
@@ -42,6 +49,11 @@ namespace _03_ChatClientWPF
             Dispatcher.Invoke(() => txtMessage.IsEnabled = false);
         }
 
+        /// <summary>
+        /// This is the handler to connect. This is the event handler coming from the WPF XAML code
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
         private async void btnConnect_Click(object sender, RoutedEventArgs e)
         {
             try
@@ -64,6 +76,14 @@ namespace _03_ChatClientWPF
             }
         }
 
+        /// <summary>
+        /// TcpClient connects to the tcpListener
+        /// </summary>
+        /// <param name="name"></param>
+        /// <param name="ip"></param>
+        /// <param name="port"></param>
+        /// <param name="bufferSize"></param>
+        /// <returns></returns>
         private async Task CreateConnectionAsync(string name, string ip, int port, string bufferSize)
         {
             try
@@ -91,6 +111,10 @@ namespace _03_ChatClientWPF
             }
         }
 
+        /// <summary>
+        /// Message to update to client box in the server. Also the server knows your are connected
+        /// </summary>
+        /// <param name="name"></param>
         private async void UpdateClientListBox(string name)
         {
             try
@@ -110,6 +134,10 @@ namespace _03_ChatClientWPF
             }
         }
 
+        /// <summary>
+        /// Checks for incoming data from the server
+        /// </summary>
+        /// <param name="bufferSize"></param>
         private async void ReceiveData(int bufferSize)
         {
             byte[] buffer = new byte[bufferSize];
@@ -162,6 +190,11 @@ namespace _03_ChatClientWPF
             updateDisplay();
         }
 
+        /// <summary>
+        /// Disconnect handler. This is the event handler coming from the WPF XAML code
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
         private async void btnDisconnect_Click(object sender, RoutedEventArgs e)
         {
             try
@@ -174,6 +207,10 @@ namespace _03_ChatClientWPF
             }
         }
 
+        /// <summary>
+        /// Disconnect you from the server and lets the server know you disconnected
+        /// </summary>
+        /// <returns></returns>
         private async Task DisconnectClient()
         {
             string disconnectMessage = clientName.Text + ": disconnected";
@@ -188,6 +225,11 @@ namespace _03_ChatClientWPF
             }
         }
 
+        /// <summary>
+        /// Message handler. This is the event handler coming from the WPF XAML code
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
         private async void btnSend_Click(object sender, RoutedEventArgs e)
         {
             try
@@ -200,6 +242,12 @@ namespace _03_ChatClientWPF
             }
         }
 
+        /// <summary>
+        /// Send message to server with the right message marker.
+        /// </summary>
+        /// <param name="name"></param>
+        /// <param name="message"></param>
+        /// <returns></returns>
         private async Task SendMessageToServer(string name, string message)
         {
             try
@@ -229,35 +277,65 @@ namespace _03_ChatClientWPF
             }
         }
 
+        /// <summary>
+        /// Parses a string to a int.
+        /// </summary>
+        /// <param name="input"></param>
+        /// <returns></returns>
         private int ParseStringToInt(string input)
         {
             int.TryParse(input, out int number);
             return number;
         }
 
+        /// <summary>
+        /// Validates the name from a client.
+        /// </summary>
+        /// <param name="input"></param>
+        /// <returns></returns>
         private bool NameValidation(string input)
         {
             var regex = new Regex("^[a-zA-Z0-9 ]*$");
             return regex.IsMatch(input);
         }
 
+        /// <summary>
+        /// Validates the IPAdress. Done by using the IPAdress class.
+        /// </summary>
+        /// <param name="input"></param>
+        /// <returns></returns>
         private bool IpValidation(string input)
         {
             return IPAddress.TryParse(input, out var ip);
         }
 
+        /// <summary>
+        /// Validates the port
+        /// </summary>
+        /// <param name="input"></param>
+        /// <returns></returns>
         private bool PortValidation(string input)
         {
             const int maxPortNumber = 65535;
             return input.All(char.IsDigit) && ParseStringToInt(input) <= maxPortNumber && ParseStringToInt(input) > 0;
         }
 
+        /// <summary>
+        /// Valides the buffer
+        /// </summary>
+        /// <param name="input"></param>
+        /// <returns></returns>
         private bool BufferValidation(string input)
         {
             int bufferSizeInt = ParseStringToInt(input);
             return input.All(char.IsDigit) && bufferSizeInt > 0;
         }
 
+        /// <summary>
+        /// On screen closes, closes the connection. To prevent crash
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
         private async void close_client(object sender, CancelEventArgs e)
         {
             if (tcpClient != null && tcpClient.Connected)
