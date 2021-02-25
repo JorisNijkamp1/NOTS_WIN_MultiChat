@@ -174,10 +174,6 @@ namespace _03_ChatServerWPF
                 {
                     break;
                 }
-                catch (ObjectDisposedException)
-                {
-                    break;
-                }
 
                 if (incomingMessage.EndsWith(messageIncoming))
                 {
