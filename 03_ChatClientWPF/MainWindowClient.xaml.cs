@@ -67,12 +67,12 @@ namespace _03_ChatClientWPF
                 }
                 else
                 {
-                    MessageBox.Show("Input value is not correct", "Invalid input");
+                    MessageBox.Show("Invalid input", "Warning", MessageBoxButton.OK, MessageBoxImage.Warning);
                 }
             }
             catch
             {
-                MessageBox.Show("YOU CANNOT CONNECT");
+                MessageBox.Show("Connecting error", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -105,7 +105,7 @@ namespace _03_ChatClientWPF
                 await Task.Run(() => UpdateClientListBox(name));
                 await Task.Run(() => ReceiveData(ParseStringToInt(bufferSize)));
             }
-            catch (SocketException e)
+            catch (SocketException)
             {
                 MessageBox.Show("Could not create a connection with the server", "Connection error");
             }
@@ -143,7 +143,7 @@ namespace _03_ChatClientWPF
             byte[] buffer = new byte[bufferSize];
             NetworkStream networkStream = tcpClient.GetStream();
 
-            string serverDisconnectMessage = "SERVERDISCONNECT@";
+            const string serverDisconnectMessage = "SERVERDISCONNECT@";
             string clientDisconnectMessage = "CLIENTDISCONNECTED@";
 
             while (networkStream.CanRead)
@@ -328,8 +328,9 @@ namespace _03_ChatClientWPF
         /// <returns></returns>
         private bool BufferValidation(string input)
         {
+            const int maxBufferSize = 1048576;
             int bufferSizeInt = ParseStringToInt(input);
-            return input.All(char.IsDigit) && bufferSizeInt > 0;
+            return input.All(char.IsDigit) && bufferSizeInt > 0 && bufferSizeInt < maxBufferSize;
         }
 
         /// <summary>

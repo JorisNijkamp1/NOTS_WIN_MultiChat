@@ -28,7 +28,7 @@ namespace _03_ChatServerWPF
         {
             InitializeComponent();
         }
-        
+
         /// <summary>
         /// Updates the client list to show what clients are connected!
         /// </summary>
@@ -76,6 +76,7 @@ namespace _03_ChatServerWPF
         {
             if (serverName.Text.Length > 0)
             {
+                // Input fields validation
                 if (BufferValidation(serverBufferSize.Text)
                     && IpValidation(serverIpAdress.Text)
                     && PortValidation(serverPort.Text))
@@ -87,12 +88,12 @@ namespace _03_ChatServerWPF
                 }
                 else
                 {
-                    MessageBox.Show("Invalid input", "Invalid input");
+                    MessageBox.Show("Invalid input", "Warning", MessageBoxButton.OK, MessageBoxImage.Warning);
                 }
             }
             else
             {
-                MessageBox.Show("Fill in a server name", "Invalid input");
+                MessageBox.Show("Fill in a server name", "Invalid input", MessageBoxButton.OK, MessageBoxImage.Warning);
             }
         }
 
@@ -105,7 +106,7 @@ namespace _03_ChatServerWPF
         {
             try
             {
-                string disconnectingMessage = "Server is closingSERVERDISCONNECT@";
+                const string disconnectingMessage = "Server is closingSERVERDISCONNECT@";
 
                 await SendMessageToClients(disconnectingMessage);
 
@@ -113,6 +114,7 @@ namespace _03_ChatServerWPF
 
                 clientConnectionList.Clear();
 
+                // Closing the clients after whilde disconnecting
                 foreach (var client in clientConnectionList)
                 {
                     client.Close();
@@ -156,7 +158,7 @@ namespace _03_ChatServerWPF
                 btnStop.Visibility = Visibility.Visible;
                 btnStart.Visibility = Visibility.Hidden;
                 AddMessageToChatBox($"Listening for clients on port: {port}");
-                
+
                 // While server is running, keeps wait for other client to connect.
                 while (serverRunning)
                 {
@@ -175,10 +177,11 @@ namespace _03_ChatServerWPF
             }
             catch (SocketException)
             {
-                MessageBox.Show("Cant connect server with these values, check your ipadress or port!", "Error", MessageBoxButton.OK, MessageBoxImage.Stop);
+                MessageBox.Show("Cant connect server with these values, check your ipadress or port!", "Error",
+                    MessageBoxButton.OK, MessageBoxImage.Stop);
             }
         }
-        
+
         /// <summary>
         /// Checks for incoming data
         /// </summary>
@@ -189,9 +192,9 @@ namespace _03_ChatServerWPF
             byte[] buffer = new byte[bufferSize];
             NetworkStream networkStream = tcpClient.GetStream();
 
-            string connectIncoming = "CONNECT@";
-            string messageIncoming = "MESSAGE@";
-            string disconnectIncoming = "DISCONNECT@";
+            const string connectIncoming = "CONNECT@";
+            const string messageIncoming = "MESSAGE@";
+            const string disconnectIncoming = "DISCONNECT@";
 
             while (networkStream.CanRead)
             {
@@ -316,8 +319,9 @@ namespace _03_ChatServerWPF
         /// <returns></returns>
         private bool BufferValidation(string input)
         {
+            const int maxBufferSize = 1048576;
             int bufferSizeInt = ParseStringToInt(input);
-            return input.All(char.IsDigit) && bufferSizeInt > 0;
+            return input.All(char.IsDigit) && bufferSizeInt > 0 && bufferSizeInt < maxBufferSize;
         }
 
         /// <summary>
