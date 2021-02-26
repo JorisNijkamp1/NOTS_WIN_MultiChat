@@ -195,7 +195,7 @@ namespace _03_ChatServerWPF
             const string connectIncoming = "CONNECT@";
             const string messageIncoming = "MESSAGE@";
             const string disconnectIncoming = "DISCONNECT@";
-
+            
             while (networkStream.CanRead)
             {
                 string incomingMessage = "";
@@ -267,6 +267,7 @@ namespace _03_ChatServerWPF
         {
             if (clientConnectionList.Count > 0)
             {
+                // Send message to all clients that are connected
                 foreach (var client in clientConnectionList)
                 {
                     networkStream = client.GetStream();
@@ -331,6 +332,7 @@ namespace _03_ChatServerWPF
         /// <param name="e"></param>
         private async void close_server(object sender, CancelEventArgs e)
         {
+            // Checks if server is connected, if not just normal close.
             if (serverRunning && tcpListener.Server.Connected)
             {
                 string disconnectingMessage = "Server is closingSERVERDISCONNECT@";

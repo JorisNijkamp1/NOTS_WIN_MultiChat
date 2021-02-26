@@ -144,7 +144,6 @@ namespace _03_ChatClientWPF
             NetworkStream networkStream = tcpClient.GetStream();
 
             const string serverDisconnectMessage = "SERVERDISCONNECT@";
-            string clientDisconnectMessage = "CLIENTDISCONNECTED@";
 
             while (networkStream.CanRead)
             {
@@ -253,26 +252,33 @@ namespace _03_ChatClientWPF
         {
             try
             {
-                if (message.Length != 0)
+                if (!message.Contains("@"))
                 {
-                    string fullMessage = name + ": " + message;
-                    fullMessage += "MESSAGE@";
-
-                    if (networkStream.CanWrite)
+                    if (message.Length != 0)
                     {
-                        byte[] clientMessageByteArray = Encoding.ASCII.GetBytes(fullMessage);
-                        await networkStream.WriteAsync(clientMessageByteArray, 0, clientMessageByteArray.Length);
-                    }
+                        string fullMessage = name + ": " + message;
+                        fullMessage += "MESSAGE@";
 
-                    txtMessage.Clear();
-                    txtMessage.Focus();
+                        if (networkStream.CanWrite)
+                        {
+                            byte[] clientMessageByteArray = Encoding.ASCII.GetBytes(fullMessage);
+                            await networkStream.WriteAsync(clientMessageByteArray, 0, clientMessageByteArray.Length);
+                        }
+
+                        txtMessage.Clear();
+                        txtMessage.Focus();
+                    }
+                    else
+                    {
+                        MessageBox.Show("Fill in a message", "Warning", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    }
                 }
                 else
                 {
-                    MessageBox.Show("Fill in a message", "Warning", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    MessageBox.Show("Message cant contain this special character", "Warning", MessageBoxButton.OK, MessageBoxImage.Warning);
                 }
             }
-            catch (SocketException exception)
+            catch (SocketException)
             {
                 MessageBox.Show("Er gaat iets fout.", "Error");
             }
